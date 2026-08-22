@@ -1,48 +1,22 @@
-const express = require('express');//express is framework for building web applications
-//it helps in recieving http request and sending response and creating routes for api
+const express = require('express');
+const orderRoutes = require('./routes/order.routes');
 
-const axios = require('axios');//axios helps in making http requests basically sending them
-//here axios will help in sending http to payment-service/payments endpoint
+// index.js is responsible for:
+// 1. Creating the Express application
+// 2. Adding middleware (express.json)
+// 3. Mounting the routes
+// 4. Starting the server
+// 5. Reading PORT from environment
+//
+// It does NOT contain route definitions, validation, or business logic.
+// Those responsibilities live in routes/, controllers/, and services/.
 
 const app = express();
-app.use(express.json());//middleware for parsing json and making it available as req.body
+app.use(express.json()); // parse incoming JSON bodies so req.body is available
 
 const PORT = process.env.PORT || 3001;
-const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3002';
 
-app.post('/orders', async (req, res) => {//async because it may take time as payment will be completed first
-  const { item, amount } = req.body;
-
-  if (!item || !amount) {
-    return res.status(400).json({ error: 'item and amount are required' });
-  }
-
-  const orderId = `ord_${Date.now()}`;
-
-  try {
-    const paymentResponse = await axios.post(`${PAYMENT_SERVICE_URL}/payments`, {
-      orderId,
-      amount,
-    }, {
-      timeout: 5000,
-      timeoutErrorMessage: 'payment timeout'
-    });
-
-    return res.status(201).json({
-      orderId,
-      item,
-      amount,
-      payment: paymentResponse.data,
-    });
-  } catch (err) {
-    return res.status(502).json({
-      error: 'Payment service error',
-      details: err.message,
-    });//502=bad gateway means payment service is down something like that
-  }
-});
-
-app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'order-service' }));
+app.use('/', orderRoutes); // mount all order-service routes
 
 app.listen(PORT, () => {
   console.log(`order-service running on port ${PORT}`);
