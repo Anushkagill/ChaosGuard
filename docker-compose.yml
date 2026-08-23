@@ -1,4 +1,15 @@
 services:
+  chaosguard-api:
+    build: ./services/chaosguard-api
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      # Phase 4: ChaosGuard communicates with target services over the Docker network.
+      - PAYMENT_SERVICE_URL=http://payment-service:3002
+    depends_on:
+      - payment-service
+
   order-service:
     build: ./services/order-service
     ports:
@@ -15,3 +26,11 @@ services:
       - "3002:3002"
     environment:
       - PORT=3002
+      # Phase 3: Fault injection configuration (disabled by default).
+      # Set these on the host before running docker compose up.
+      # Example: FAULT_LATENCY_MS=3000 docker compose up
+      - FAULT_LATENCY_MS=${FAULT_LATENCY_MS:-}
+      - FAULT_ERROR=${FAULT_ERROR:-}
+      - FAULT_UNAVAILABLE=${FAULT_UNAVAILABLE:-}
+
+
