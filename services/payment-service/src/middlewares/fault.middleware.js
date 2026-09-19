@@ -83,4 +83,3 @@ function applyFault(fault, parameters, req, res, next) {
 }
 
 module.exports = faultInjection;
-

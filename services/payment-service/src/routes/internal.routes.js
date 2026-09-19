@@ -1,4 +1,5 @@
 const express = require('express');
+const { asyncHandler } = require('../utils/asynchandler');
 const { activateFault, deactivateFault, getFault } = require('../controllers/internal.controller');
 
 // ============================================================
@@ -11,12 +12,15 @@ const { activateFault, deactivateFault, getFault } = require('../controllers/int
 // POST   /internal/faults — activate a fault
 // DELETE /internal/faults — clear the active fault
 // GET    /internal/faults — check current fault state
+//
+// Handlers are wrapped with asyncHandler to forward errors to errorHandler.
 // ============================================================
 
 const router = express.Router();
 
-router.post('/internal/faults', activateFault);
-router.delete('/internal/faults', deactivateFault);
-router.get('/internal/faults', getFault);
+router.post('/internal/faults', asyncHandler(activateFault));
+router.delete('/internal/faults', asyncHandler(deactivateFault));
+router.get('/internal/faults', asyncHandler(getFault));
 
 module.exports = router;
+

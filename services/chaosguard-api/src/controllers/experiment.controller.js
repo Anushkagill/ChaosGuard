@@ -4,10 +4,14 @@
 //
 // Handles HTTP request/response for experiment endpoints.
 // Delegates business logic to experiment.service.js.
+//
+// Error handling: throws ApiError for validation/lifecycle errors.
+// asyncHandler (applied in routes) catches and forwards to errorHandler.
 // ============================================================
 
 const { getExperiment, getAllExperiments } = require('../models/experiment.model');
 const experimentService = require('../services/experiment.service');
+const { ApiError } = require('../utils/ApiError');
 
 // POST /experiments
 async function createExperiment(req, res) {
@@ -16,7 +20,7 @@ async function createExperiment(req, res) {
   const result = experimentService.create({ target, fault, parameters, duration });
 
   if (!result.success) {
-    return res.status(400).json({ error: 'Invalid experiment', details: result.errors });
+    throw new ApiError(400, 'Invalid experiment', result.errors);
   }
 
   return res.status(201).json(result.experiment);
@@ -32,7 +36,7 @@ async function listExperiments(req, res) {
 async function getExperimentById(req, res) {
   const experiment = getExperiment(req.params.id);
   if (!experiment) {
-    return res.status(404).json({ error: 'Experiment not found' });
+    throw new ApiError(404, 'Experiment not found');
   }
   return res.status(200).json(experiment);
 }
@@ -42,7 +46,7 @@ async function startExperiment(req, res) {
   const result = await experimentService.start(req.params.id);
 
   if (!result.success) {
-    return res.status(result.status).json({ error: result.error });
+    throw new ApiError(result.status, result.error);
   }
 
   return res.status(200).json(result.experiment);
@@ -53,7 +57,7 @@ async function stopExperiment(req, res) {
   const result = await experimentService.stop(req.params.id);
 
   if (!result.success) {
-    return res.status(result.status).json({ error: result.error });
+    throw new ApiError(result.status, result.error);
   }
 
   return res.status(200).json(result.experiment);
@@ -72,3 +76,4 @@ module.exports = {
   stopExperiment,
   getHealth,
 };
+
