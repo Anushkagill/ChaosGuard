@@ -31,7 +31,7 @@
 const experiments = new Map();
 let counter = 0;
 
-const SUPPORTED_TARGETS = ['payment-service'];
+const SUPPORTED_TARGETS = ['payment-service', 'auth-service', 'inventory-service'];
 const SUPPORTED_FAULTS = ['latency', 'error', 'unavailable'];
 const VALID_STATUSES = ['PENDING', 'QUEUED', 'RUNNING', 'COMPLETED', 'FAILED'];
 

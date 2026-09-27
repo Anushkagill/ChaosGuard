@@ -15,6 +15,8 @@ const axios = require('axios');
 // URLs come from environment variables so they work in Docker.
 const TARGET_URLS = {
   'payment-service': process.env.PAYMENT_SERVICE_URL || 'http://localhost:3002',
+  'auth-service': process.env.AUTH_SERVICE_URL || 'http://localhost:3003',
+  'inventory-service': process.env.INVENTORY_SERVICE_URL || 'http://localhost:3004',
 };
 
 async function activateFault(target, fault, parameters) {

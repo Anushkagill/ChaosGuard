@@ -1,7 +1,7 @@
 {
   "name": "experiment-worker",
   "version": "1.0.0",
-  "description": "ChaosGuard experiment worker — processes experiment jobs from BullMQ",
+  "description": "ChaosGuard experiment worker - processes experiment jobs from BullMQ",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js"
