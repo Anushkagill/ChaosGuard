@@ -2,7 +2,7 @@ ChaosGuard — Memory
 
 Current Phase
 
-Phase 5 — Redis + BullMQ + Experiment Worker (implemented and verified)
+Phase 6 — Expand Controlled Microservice Environment (Auth + Inventory) (implemented and verified)
 
 Completed Work
 
@@ -194,6 +194,43 @@ New dependencies:
 
 Existing API response shapes preserved — no breaking changes
 
+Phase 6 — Expand Controlled Microservice Environment (Auth + Inventory)
+
+Simulated Auth Service added (services/auth-service/):
+  Port 3003, Node.js + Express
+  Simulated gateway dependency (no JWT, passwords, sessions, or real authentication)
+  Exposes POST /auth/validate and GET /health
+  Exposes /internal/faults (runtime fault control: latency, error, unavailable)
+  Dockerfile and .dockerignore included
+
+Simulated Inventory Service added (services/inventory-service/):
+  Port 3004, Node.js + Express
+  Simulated downstream stock reservation dependency (deterministic, no DB or persistent state)
+  Exposes POST /inventory/check and GET /health
+  Exposes /internal/faults (runtime fault control: latency, error, unavailable)
+  Dockerfile and .dockerignore included
+
+Order Service updated (services/order-service/):
+  Added services/auth.service.js and services/inventory.service.js
+  createOrder controller refactored to execute sequential dependency chain: Auth (:3003) → Inventory (:3004) → Payment (:3002)
+  Sequential execution strictly maintained (no Promise.all()) for clear failure observability
+  Isolated failure boundaries with distinct 502 error messages: "Auth service error", "Inventory service error", "Payment service error"
+  Backward compatibility preserved: requests without explicit token default to simulated guest token, ensuring all requests pass through Auth boundary
+  Response includes auth, inventory, and payment composite details
+
+ChaosGuard Target Registration:
+  SUPPORTED_TARGETS updated in experiment.model.js: ['payment-service', 'auth-service', 'inventory-service']
+  TARGET_URLS updated in chaosguard-api/src/services/target.service.js
+  TARGET_URLS updated in experiment-worker/src/services/target.service.js
+  Target resolution kept consistent between API and Worker
+
+Docker Compose updated:
+  auth-service container (:3003) added
+  inventory-service container (:3004) added
+  order-service wired to auth-service and inventory-service
+  chaosguard-api and experiment-worker wired to new targets
+  Full 7-container stack verified
+
 Utility & Error-Handling Integration
 
 The following common backend utilities were added to all three services:
@@ -271,10 +308,10 @@ Existing behavior was preserved.
 Current Architecture
 
                          ┌─────────────────────┐
-                         │    ChaosGuard API   │
-                         │      :3000          │
+       HTTP              │    ChaosGuard API   │
+ Client ──────────────→  │      :3000          │
                          │                     │
-                         │ Experiment API      │
+                         │ Experiment Routes   │
                          │ Experiment Service  │
                          │ BullMQ Queue        │
                          │   (producer)        │
@@ -288,29 +325,29 @@ Current Architecture
                          │                     │
                          │ BullMQ Worker       │
                          │   (consumer)        │
+                         │ target.service.js   │
                          └──────────┬──────────┘
-                                    │ Axios
-                                    ▼
-                         ┌─────────────────────┐
-                         │   Payment Service   │
-                         │       :3002         │
-                         │                     │
-                         │ Fault Injection     │
-                         └──────────┬──────────┘
-                                    │
-                                    ▼
-                         ┌─────────────────────┐
-                         │    Order Service    │
-                         │       :3001         │
-                         └─────────────────────┘
+                                    │ Axios (/internal/faults)
+               ┌────────────────────┼────────────────────┐
+               ▼                    │                    ▼
+        Auth Service (:3003)        │         Inventory Service (:3004)
+        [Fault Injection]           │         [Fault Injection]
+               │                    │
+               │ POST /auth/validate│
+               ▼                    ▼
+        Order Service (:3001) ──────────────→ Payment Service (:3002)
+               │           POST /payments     [Fault Injection]
+               │
+               └────────────────────────────→ Inventory Service (:3004)
+                           POST /inventory/check
 
 Current runtime characteristics:
 
-Docker Compose provides service networking.
+Docker Compose provides service networking for all 7 containers.
 
 Experiment state is stored in memory (API process).
 
-Payment runtime fault state is stored in memory (Payment Service process).
+Target runtime fault states are stored in memory within each target process (Payment, Auth, Inventory).
 
 Experiment execution runs in the experiment-worker process via BullMQ.
 
@@ -318,7 +355,9 @@ Job data (state, results, failure reason) is stored in Redis.
 
 API syncs experiment status from Redis on demand (GET /experiments/:id).
 
-MongoDB, React, Socket.io, Auth, and Inventory are not yet implemented.
+Failure propagation: Auth failure halts entire flow; Inventory failure halts before Payment; Payment failure preserves Auth & Inventory results.
+
+React, React Flow, Socket.io, Load testing, and MongoDB are not yet implemented.
 
 Important Architectural Decisions
 
@@ -456,13 +495,33 @@ Worker continues independently when API container is restarted.
 
 Manual recovery path verified: GET /internal/faults detects stuck fault, DELETE /internal/faults clears it.
 
+Phase 6 verification:
+
+All 7 containers build and start successfully in docker-compose.
+
+Health checks verified on all 5 HTTP endpoints (:3000 API, :3001 Order, :3002 Payment, :3003 Auth, :3004 Inventory).
+
+Baseline order flow verified: backward compatibility preserved (requests without explicit token default to simulated guest token and execute all dependencies).
+
+Sequential execution verified: Auth (:3003) → Inventory (:3004) → Payment (:3002) without Promise.all().
+
+Auth Service experiment verified: worker activates fault via /internal/faults; Order Service returns 502 "Auth service error"; fault clears automatically on completion; orders recover.
+
+Inventory Service experiment verified: worker activates fault; Order Service returns 502 "Inventory service error"; fault clears automatically; orders recover.
+
+Payment Service experiment verified: existing behavior preserved; Order Service returns 502 "Payment service error"; orders recover.
+
+Target maps verified identical between ChaosGuard API and Experiment Worker.
+
+End-to-end automation test suite (test_step5_e2e.js) passed across all 5 verification stages.
+
 Current Status
 
-Completed through Phase 5.
+Completed through Phase 6.
 
 Current next phase:
 
-Phase 6 — Auth + Inventory
+Phase 7 — React Dashboard
 
 Planned Roadmap
 
@@ -473,8 +532,8 @@ Phase 2  → Docker                             ✓
 Phase 3  → Controlled Fault Injection        ✓
 Phase 4  → Experiment API                     ✓
 Phase 5  → Redis + BullMQ + Worker            ✓
-Phase 6  → Auth + Inventory                   →
-Phase 7  → React Dashboard
+Phase 6  → Auth + Inventory                   ✓
+Phase 7  → React Dashboard                    →
 Phase 8  → React Flow Topology
 Phase 9  → Socket.io Realtime
 Phase 10 → Controlled Load Testing + Metrics
@@ -515,8 +574,8 @@ record meaningful decisions and known issues
 
 Next Task
 
-Phase 6 — Auth + Inventory (see phases.md for requirements).
+Phase 7 — React Dashboard (see phases.md for requirements).
 
 Last Updated
 
-2026-09-26
+2026-09-28

@@ -214,43 +214,65 @@ AI is not required for the core experiment execution path.
 
 4. Current Architecture
 
-The current implementation (Phase 5) contains five containers:
+The current implementation (Phase 6) contains seven containers:
 
-                 HTTP
-Client ──→ ChaosGuard API (:3000)
-                 │
-                 │ enqueues job
-                 ▼
-            Redis / BullMQ (:6379)
-                 │
-                 │ consumes job
-                 ▼
-         Experiment Worker (dedicated worker process)
-                 │
-                 │ HTTP (/internal/faults)
-                 ▼
-Order Service ───────────→ Payment Service (:3002)
-   :3001
+                         ┌─────────────────────┐
+       HTTP              │    ChaosGuard API   │
+ Client ──────────────→  │      :3000          │
+                         │                     │
+                         │ Experiment Routes   │
+                         │ Experiment Service  │
+                         │ BullMQ Queue        │
+                         │   (producer)        │
+                         └──────────┬──────────┘
+                                    │
+                                    │ Redis :6379
+                                    │
+                         ┌──────────▼──────────┐
+                         │ Experiment Worker   │
+                         │  (no HTTP port)     │
+                         │                     │
+                         │ BullMQ Worker       │
+                         │   (consumer)        │
+                         │ target.service.js   │
+                         └──────────┬──────────┘
+                                    │ Axios (/internal/faults)
+               ┌────────────────────┼────────────────────┐
+               ▼                    │                    ▼
+        Auth Service (:3003)        │         Inventory Service (:3004)
+        [Fault Injection]           │         [Fault Injection]
+               │                    │
+               │ POST /auth/validate│
+               ▼                    ▼
+        Order Service (:3001) ──────────────→ Payment Service (:3002)
+               │           POST /payments     [Fault Injection]
+               │
+               └────────────────────────────→ Inventory Service (:3004)
+                           POST /inventory/check
 
 Current services:
 
-chaosguard-api (:3000) — accepts HTTP requests, validates experiments, enqueues jobs to BullMQ, queries job status
+chaosguard-api (:3000) — accepts HTTP requests, validates experiments across supported targets (payment-service, auth-service, inventory-service), enqueues jobs to BullMQ, queries job status
 
-experiment-worker — consumes jobs from BullMQ queue 'experiments', injects/clears faults on target services, tracks fault lifecycle
+experiment-worker — consumes jobs from BullMQ queue 'experiments', injects/clears faults on target services (payment, auth, inventory), tracks fault lifecycle
 
 redis (:6379) — in-memory backing store for BullMQ queue
 
-order-service (:3001) — sample microservice calling payment-service
+order-service (:3001) — orchestrates sequential fulfillment: Auth (:3003) → Inventory (:3004) → Payment (:3002)
 
 payment-service (:3002) — target microservice exposing /internal/faults
 
-The current architecture already includes:
+auth-service (:3003) — simulated gateway dependency for Order Service, exposing /auth/validate and /internal/faults
 
-Docker (all 5 containers running in docker-compose)
+inventory-service (:3004) — simulated downstream dependency for Order Service, exposing /inventory/check and /internal/faults
 
-Controlled fault injection (latency, error, unavailable)
+The current architecture includes:
 
-Experiment API (REST endpoints for creating, starting, stopping, querying experiments)
+Docker (all 7 containers running in docker-compose)
+
+Controlled fault injection across 3 independent targets (payment, auth, inventory)
+
+Experiment API (REST endpoints for creating, starting, stopping, querying experiments on all 3 targets)
 
 Redis + BullMQ (job queue for asynchronous experiment processing)
 
@@ -262,23 +284,24 @@ Centralized error handling and lifecycle validation
 
 Explicit cleanup tracking (faultCleared boolean)
 
+Multi-dependency failure propagation scenarios:
+- Auth fault blocks Order processing immediately (gateway failure)
+- Inventory fault blocks Payment step (partial downstream failure)
+- Payment fault preserves prior Auth & Inventory execution
+
 The current architecture does not yet require:
 
-Auth Service (Phase 6)
-
-Inventory Service (Phase 6)
-
-React (Phase 7)
+React Dashboard (Phase 7)
 
 React Flow (Phase 8)
 
 Socket.io (Phase 9)
 
-MongoDB (Phase 11)
-
 Load testing (Phase 10)
 
 Advanced metrics (Phase 10)
+
+MongoDB (Phase 11)
 
 These components should be introduced only in their respective phases.
 
