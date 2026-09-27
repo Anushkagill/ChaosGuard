@@ -11,12 +11,16 @@ services:
       - "3000:3000"
     environment:
       - PORT=3000
-      # Phase 4: ChaosGuard communicates with target services over the Docker network.
+      # Phase 4+6: ChaosGuard communicates with target services over the Docker network.
       - PAYMENT_SERVICE_URL=http://payment-service:3002
+      - AUTH_SERVICE_URL=http://auth-service:3003
+      - INVENTORY_SERVICE_URL=http://inventory-service:3004
       # Phase 5: Redis connection for BullMQ experiment queue.
       - REDIS_URL=redis://redis:6379
     depends_on:
       - payment-service
+      - auth-service
+      - inventory-service
       - redis
 
   # Phase 5: Experiment Worker — consumes experiment jobs from BullMQ.
@@ -26,9 +30,13 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379
       - PAYMENT_SERVICE_URL=http://payment-service:3002
+      - AUTH_SERVICE_URL=http://auth-service:3003
+      - INVENTORY_SERVICE_URL=http://inventory-service:3004
     depends_on:
       - redis
       - payment-service
+      - auth-service
+      - inventory-service
 
   order-service:
     build: ./services/order-service
@@ -37,8 +45,12 @@ services:
     environment:
       - PORT=3001
       - PAYMENT_SERVICE_URL=http://payment-service:3002
+      - AUTH_SERVICE_URL=http://auth-service:3003
+      - INVENTORY_SERVICE_URL=http://inventory-service:3004
     depends_on:
       - payment-service
+      - auth-service
+      - inventory-service
 
   payment-service:
     build: ./services/payment-service
@@ -49,6 +61,28 @@ services:
       # Phase 3: Fault injection configuration (disabled by default).
       # Set these on the host before running docker compose up.
       # Example: FAULT_LATENCY_MS=3000 docker compose up
+      - FAULT_LATENCY_MS=${FAULT_LATENCY_MS:-}
+      - FAULT_ERROR=${FAULT_ERROR:-}
+      - FAULT_UNAVAILABLE=${FAULT_UNAVAILABLE:-}
+
+  # Phase 6: Simulated Auth Service — gateway dependency for Order Service
+  auth-service:
+    build: ./services/auth-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - FAULT_LATENCY_MS=${FAULT_LATENCY_MS:-}
+      - FAULT_ERROR=${FAULT_ERROR:-}
+      - FAULT_UNAVAILABLE=${FAULT_UNAVAILABLE:-}
+
+  # Phase 6: Simulated Inventory Service — downstream dependency for Order Service
+  inventory-service:
+    build: ./services/inventory-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
       - FAULT_LATENCY_MS=${FAULT_LATENCY_MS:-}
       - FAULT_ERROR=${FAULT_ERROR:-}
       - FAULT_UNAVAILABLE=${FAULT_UNAVAILABLE:-}
