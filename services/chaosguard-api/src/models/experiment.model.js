@@ -1,5 +1,5 @@
 // ============================================================
-// Experiment Model — Phase 4
+// Experiment Model — Phase 5
 // ============================================================
 //
 // In-memory experiment storage and ID generation.
@@ -12,12 +12,20 @@
 //   fault: 'latency',
 //   parameters: { latencyMs: 3000 },
 //   duration: 10,
-//   status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED',
+//   status: 'PENDING' | 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED',
 //   error: null | string,
+//   jobId: null | string,       // BullMQ job ID (set when queued)
+//   faultCleared: null | boolean, // was the fault actually cleared?
 //   createdAt: ISO string,
+//   queuedAt: null | ISO string, // timestamp when added to BullMQ queue
 //   startedAt: null | ISO string,
 //   completedAt: null | ISO string,
 // }
+//
+// faultCleared semantics:
+//   null    — not yet applicable (experiment not started or not reached fault stage)
+//   true    — fault was successfully cleared
+//   false   — fault was NOT cleared (target may still be in broken state — operator must intervene)
 // ============================================================
 
 const experiments = new Map();
@@ -25,7 +33,7 @@ let counter = 0;
 
 const SUPPORTED_TARGETS = ['payment-service'];
 const SUPPORTED_FAULTS = ['latency', 'error', 'unavailable'];
-const VALID_STATUSES = ['PENDING', 'RUNNING', 'COMPLETED', 'FAILED'];
+const VALID_STATUSES = ['PENDING', 'QUEUED', 'RUNNING', 'COMPLETED', 'FAILED'];
 
 function generateId() {
   counter += 1;
@@ -42,7 +50,10 @@ function createExperiment({ target, fault, parameters, duration }) {
     duration,
     status: 'PENDING',
     error: null,
+    jobId: null,          // Phase 5: BullMQ job ID, set when experiment is queued.
+    faultCleared: null,   // Phase 5: tracks whether fault was actually cleared.
     createdAt: new Date().toISOString(),
+    queuedAt: null,       // Phase 5: timestamp when job was added to BullMQ.
     startedAt: null,
     completedAt: null,
   };

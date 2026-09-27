@@ -1,21 +1,22 @@
 ChaosGuard — Development Rules
 
-1. Purpose
+Purpose
 
 This document defines the rules that must be followed when developing ChaosGuard.
 
 These rules apply to:
 
-- AI coding agents
-- Human developers
-- Automated tools
-- Future contributors
+AI coding agents
+
+Human developers
+
+Automated tools
+
+Future contributors
 
 The goal is to keep the project understandable, maintainable, incremental, and technically coherent.
 
----
-
-2. Core Development Principle
+Core Development Principle
 
 ChaosGuard must be built incrementally.
 
@@ -25,72 +26,87 @@ The current phase is the source of truth for what should be implemented.
 
 If a feature belongs to a future phase:
 
-- Do not implement it early.
-- Do not install its dependencies early.
-- Do not create unnecessary placeholder architecture for it.
-- Do not modify the current system just to prepare for it unless explicitly required.
+Do not implement it early.
 
----
+Do not install its dependencies early.
 
-3. AI Coding Agent Rules
+Do not create unnecessary placeholder architecture for it.
+
+Do not modify the current system just to prepare for it unless explicitly required.
+
+AI Coding Agent Rules
 
 AI coding agents such as Antigravity must behave as implementation agents, not autonomous architects.
 
 Before making significant changes, the agent should:
 
-1. Read "docs/prd.md".
-2. Read "docs/architecture.md".
-3. Read "docs/rules.md".
-4. Read "docs/phases.md".
-5. Read "docs/memory.md" when it exists.
-6. Inspect the existing code.
-7. Identify the current phase.
-8. Implement only the requested task.
+Read "docs/prd.md".
+
+Read "docs/architecture.md".
+
+Read "docs/rules.md".
+
+Read "docs/phases.md".
+
+Read "docs/memory.md" when it exists.
+
+Inspect the existing code.
+
+Identify the current phase.
+
+Implement only the requested task.
 
 The agent must not assume that a technology mentioned in the final architecture is already implemented.
 
----
-
-4. No Unrequested Features
+No Unrequested Features
 
 Do not add functionality that was not requested for the current phase.
 
 Examples of premature features:
 
-- Authentication
-- Databases
-- Redis
-- BullMQ
-- Socket.io
-- AI APIs
-- RAG
-- Vector search
-- Docker
-- Cloud deployment
+Authentication
+
+Databases
+
+Redis
+
+BullMQ
+
+Socket.io
+
+AI APIs
+
+RAG
+
+Vector search
+
+Docker
+
+Cloud deployment
 
 unless the current phase explicitly requires them.
 
 If the agent believes a future feature is necessary, it should stop and explain why rather than silently implementing it.
 
----
-
-5. Preserve Working Functionality
+Preserve Working Functionality
 
 Existing working behavior must not be broken unnecessarily.
 
 Before changing existing code:
 
-- Understand what the code currently does.
-- Identify dependencies.
-- Preserve existing API contracts unless a change is explicitly requested.
-- Run the existing tests or verification commands.
-- Verify the system again after the change.
+Understand what the code currently does.
+
+Identify dependencies.
+
+Preserve existing API contracts unless a change is explicitly requested.
+
+Run the existing tests or verification commands.
+
+Verify the system again after the change.
 
 A refactor should not silently become a redesign.
 
----
-
-6. Small Changes
+Small Changes
 
 Prefer small, understandable changes over large rewrites.
 
@@ -99,11 +115,16 @@ A change should ideally have one clear purpose.
 Bad approach:
 
 Refactor the entire backend
-+ add Docker
-+ add Redis
-+ add authentication
-+ change API structure
-+ add database
+
+add Docker
+
+add Redis
+
+add authentication
+
+change API structure
+
+add database
 
 Good approach:
 
@@ -113,33 +134,35 @@ Then test.
 
 Then move to the next task.
 
----
-
-7. Explain Before Major Architectural Changes
+Explain Before Major Architectural Changes
 
 For normal implementation work, the AI agent may proceed without long explanations.
 
 However, before making a significant architectural change, the agent should state:
 
-1. What is changing?
-2. Why is it needed?
-3. Which existing components are affected?
-4. Which phase requires it?
+What is changing?
+
+Why is it needed?
+
+Which existing components are affected?
+
+Which phase requires it?
 
 The agent should not make major architectural decisions silently.
 
----
-
-8. Dependency Rules
+Dependency Rules
 
 Do not install a library simply because it is popular.
 
 Before adding a dependency, determine:
 
-1. What problem does it solve?
-2. Can the existing stack solve the problem?
-3. Is the dependency appropriate for the current phase?
-4. Will it create unnecessary complexity?
+What problem does it solve?
+
+Can the existing stack solve the problem?
+
+Is the dependency appropriate for the current phase?
+
+Will it create unnecessary complexity?
 
 Every external dependency should have a clear reason.
 
@@ -147,9 +170,7 @@ Avoid dependency duplication.
 
 For example, do not add multiple libraries that solve the same problem unless there is a documented reason.
 
----
-
-9. Technology Rules
+Technology Rules
 
 Use the technologies defined in "architecture.md" when their corresponding phase is reached.
 
@@ -157,19 +178,31 @@ Do not replace a technology with another one without an explicit architectural d
 
 For example:
 
-- Node.js remains the backend runtime unless explicitly changed.
-- Express remains the initial HTTP framework.
-- Axios may be used for service-to-service HTTP communication where appropriate.
-- Redis is introduced only when asynchronous infrastructure is required.
-- BullMQ is introduced only when experiment jobs require a queue.
-- React is introduced when the frontend phase begins.
-- React Flow is introduced when topology visualization begins.
-- MongoDB is introduced when persistence is required.
-- RAG and vector search are introduced only during the AI knowledge phase.
+Node.js remains the backend runtime unless explicitly changed.
 
----
+Express remains the initial HTTP framework.
 
-10. No Premature Abstraction
+Axios may be used for service-to-service HTTP communication where appropriate.
+
+Redis is introduced only when asynchronous infrastructure is required.
+
+BullMQ is introduced only when experiment jobs require a queue.
+
+React is introduced when the frontend phase begins.
+
+React Flow is introduced when topology visualization begins.
+
+Socket.io is introduced when realtime experiment updates are required.
+
+Controlled load testing and metrics are introduced when the project reaches the observability/measurement phase.
+
+MongoDB is introduced when experiment persistence and history are required.
+
+AI-assisted analysis is introduced only if the optional AI phase is explicitly approved.
+
+RAG and vector search are not part of the current core roadmap.
+
+No Premature Abstraction
 
 Do not create abstractions simply because they might be useful someday.
 
@@ -177,35 +210,47 @@ Build the simplest implementation that satisfies the current requirement.
 
 Introduce abstractions when:
 
-- The same logic is genuinely repeated.
-- The current code has become difficult to maintain.
-- A future feature actually requires the abstraction.
-- The abstraction makes the architecture clearer rather than more complicated.
+The same logic is genuinely repeated.
+
+The current code has become difficult to maintain.
+
+A future feature actually requires the abstraction.
+
+The abstraction makes the architecture clearer rather than more complicated.
 
 Avoid creating empty or speculative:
 
-- Utility layers
-- Generic managers
-- Factory systems
-- Service frameworks
-- Repository layers
-- Configuration frameworks
+Utility layers
+
+Generic managers
+
+Factory systems
+
+Service frameworks
+
+Repository layers
+
+Configuration frameworks
 
 without a concrete need.
 
----
-
-11. API Rules
+API Rules
 
 APIs must have:
 
-- Clear endpoint names
-- Appropriate HTTP methods
-- Predictable request formats
-- Predictable response formats
-- Appropriate HTTP status codes
-- Basic input validation
-- Clear error responses
+Clear endpoint names
+
+Appropriate HTTP methods
+
+Predictable request formats
+
+Predictable response formats
+
+Appropriate HTTP status codes
+
+Basic input validation
+
+Clear error responses
 
 Example:
 
@@ -217,9 +262,7 @@ Do not silently change an existing API contract.
 
 If an API contract needs to change, document the change.
 
----
-
-12. Service Boundary Rules
+Service Boundary Rules
 
 Each microservice should have a clearly defined responsibility.
 
@@ -235,9 +278,7 @@ Do not put unrelated business logic into another service simply because it is co
 
 Services should communicate through explicit APIs rather than directly accessing another service's internal code or data.
 
----
-
-13. Error Handling Rules
+Error Handling Rules
 
 Errors must be handled deliberately.
 
@@ -247,9 +288,11 @@ Client errors
 
 Examples:
 
-- Invalid input
-- Missing required fields
-- Invalid experiment configuration
+Invalid input
+
+Missing required fields
+
+Invalid experiment configuration
 
 Usually represented by appropriate 4xx responses.
 
@@ -257,8 +300,9 @@ Service errors
 
 Examples:
 
-- Internal processing failure
-- Unexpected application error
+Internal processing failure
+
+Unexpected application error
 
 Usually represented by appropriate 5xx responses.
 
@@ -266,9 +310,11 @@ Dependency errors
 
 Examples:
 
-- Payment Service unavailable
-- Worker unavailable
-- Database unavailable
+Payment Service unavailable
+
+Worker unavailable
+
+Database unavailable
 
 These should be detected and represented clearly.
 
@@ -276,49 +322,55 @@ Do not silently swallow errors.
 
 Do not use empty "catch" blocks.
 
----
-
-14. Error Messages
+Error Messages
 
 Error messages should be:
 
-- Clear
-- Useful for debugging
-- Safe to expose to users
+Clear
+
+Useful for debugging
+
+Safe to expose to users
 
 Internal implementation details should not unnecessarily be exposed in production responses.
 
 Detailed errors may be logged internally during development.
 
----
-
-15. Logging Rules
+Logging Rules
 
 Logs should help understand system behavior.
 
 Useful logs include:
 
-- Service startup
-- Experiment start
-- Experiment completion
-- Fault injection
-- Service failure
-- Important dependency failures
-- Unexpected errors
+Service startup
+
+Experiment start
+
+Experiment completion
+
+Fault injection
+
+Service failure
+
+Important dependency failures
+
+Unexpected errors
 
 Avoid excessive logging of every trivial operation.
 
 Logs should not expose:
 
-- Passwords
-- Secrets
-- API keys
-- Authentication tokens
-- Sensitive user information
+Passwords
 
----
+Secrets
 
-16. Environment Configuration
+API keys
+
+Authentication tokens
+
+Sensitive user information
+
+Environment Configuration
 
 Environment-specific values should not be hardcoded when they need to change between environments.
 
@@ -336,17 +388,19 @@ Never commit real secrets to Git.
 
 Provide ".env.example" when environment variables become necessary.
 
----
-
-17. Security Rules
+Security Rules
 
 Never commit:
 
-- API keys
-- Passwords
-- Access tokens
-- Private credentials
-- Production secrets
+API keys
+
+Passwords
+
+Access tokens
+
+Private credentials
+
+Production secrets
 
 Secrets must be provided through environment configuration.
 
@@ -354,110 +408,138 @@ Do not expose internal infrastructure unnecessarily.
 
 ChaosGuard should assume that experiment execution is potentially dangerous and must remain controlled.
 
----
-
-18. Chaos Experiment Safety Rules
+Chaos Experiment Safety Rules
 
 Chaos experiments must be explicitly controlled.
 
 Every experiment should eventually identify:
 
-- Target service
-- Fault type
-- Fault parameters
-- Experiment duration
-- Experiment status
+Target service
+
+Fault type
+
+Fault parameters
+
+Experiment duration
+
+Experiment status
 
 The system should have clear boundaries around what can be modified.
+
+Concurrent experiments targeting the same service may require additional
+coordination. Do not introduce a complex concurrency manager before the
+requirements demand it; document the limitation and address it in the phase
+where concurrent execution becomes a real requirement.
 
 ChaosGuard should initially operate only on its own controlled environment.
 
 It must not execute arbitrary destructive commands against external infrastructure.
 
----
+When asynchronous experiment execution is introduced, fault cleanup must be
+treated as a safety concern. Worker failure, timeout, cancellation, or process
+restart must not be assumed to automatically restore a target service's normal
+state. Cleanup behavior must be designed and verified as part of the relevant
+phase.
 
-19. AI Safety and Responsibility
+Known limitations should be documented rather than hidden behind speculative
+recovery abstractions.
 
-The AI layer is an analysis and recommendation component.
+Optional AI Safety and Responsibility
+
+If an AI analysis layer is introduced, it is an analysis and recommendation
+component.
 
 It must not be treated as the source of ground truth about the experiment.
 
+AI is optional and must not become a prerequisite for core experiment execution,
+observability, metrics, history, or resilience comparison.
+
 Ground truth should come from:
 
-- Experiment configuration
-- Service state
-- Observed events
-- Metrics
-- Experiment results
+Experiment configuration
+
+Service state
+
+Observed events
+
+Metrics
+
+Experiment results
 
 The AI uses these observations to produce explanations and recommendations.
 
----
+Optional AI Must Not Autonomously Execute Chaos
 
-20. AI Must Not Autonomously Execute Chaos
+If the optional AI layer exists, it may:
 
-The AI may:
+Analyze experiment results
 
-- Analyze experiment results
-- Explain failures
-- Identify possible risks
-- Recommend resilience patterns
-- Suggest future experiments
+Explain failures
+
+Identify possible risks
+
+Recommend resilience patterns
+
+Suggest future experiments
 
 The AI must not independently execute destructive experiments.
 
 The intended flow is:
 
 User
- |
- | Explicit experiment configuration
- v
+|
+| Explicit experiment configuration
+v
 Experiment System
- |
- v
+|
+v
 Controlled Fault Injection
- |
- v
+|
+v
 Observed Results
- |
- v
+|
+v
 AI Analysis
- |
- v
+|
+v
 Recommendations
 
 Not:
 
 AI
- |
- | autonomous decision
- v
+|
+| autonomous decision
+v
 Infrastructure
 
----
+Optional RAG Rules
 
-21. RAG Rules
+RAG and vector search are not part of the current core ChaosGuard roadmap.
 
-When RAG is introduced:
+If they are introduced in a future, explicitly approved AI phase:
 
-The retrieval system should provide relevant engineering knowledge to the LLM.
+The retrieval system should provide relevant engineering knowledge to the analysis layer.
 
 RAG should not fabricate experiment results.
 
 The system should clearly distinguish:
 
-- Observed facts
-- Retrieved knowledge
-- AI-generated interpretation
-- AI recommendations
+Observed facts
+
+Retrieved knowledge
+
+AI-generated interpretation
+
+AI recommendations
 
 The AI should not claim that a recommendation was observed during the experiment if it was only generated as a recommendation.
 
----
+The retrieved knowledge layer must never replace actual experiment telemetry,
+metrics, service state, or experiment history as the source of experimental truth.
 
-22. AI Recommendation Rules
+Optional AI Recommendation Rules
 
-AI recommendations should be connected to observed system behavior.
+If AI-assisted analysis is enabled, recommendations should be connected to observed system behavior.
 
 For example:
 
@@ -473,20 +555,59 @@ Unrelated recommendations should not be generated merely to make the response lo
 
 Recommendations should explain why they apply.
 
----
+22.5. Current ChaosGuard Scope
 
-23. Testing Rules
+The current core project is centered on:
+
+Controlled chaos experiments
+
+Microservice failure propagation
+
+Observability and metrics
+
+Experiment history
+
+Resilience testing
+
+Before/after comparison
+
+The development rules must not treat AI, RAG, vector search, or a knowledge base
+as required for the core product to function.
+
+A future AI layer may analyze actual experiment data, but it must remain separated
+from the controlled execution path.
+
+The agreed resilience loop is:
+
+Baseline
+→ Inject Chaos
+→ Observe
+→ Measure
+→ Identify Weakness
+→ Improve Resilience
+→ Run Again
+→ Compare
+
+Each phase should introduce only the infrastructure required to support the
+current step of this loop.
+
+Testing Rules
 
 Every meaningful implementation change should be tested.
 
 Testing may include:
 
-- Unit tests
-- API tests
-- Integration tests
-- Manual verification
-- Service health checks
-- Failure scenario testing
+Unit tests
+
+API tests
+
+Integration tests
+
+Manual verification
+
+Service health checks
+
+Failure scenario testing
 
 For distributed-system changes, test both:
 
@@ -496,6 +617,10 @@ and:
 
 Failure flow
 
+When a change introduces asynchronous execution or multiple processes/services,
+also verify the relevant lifecycle boundaries: creation, execution, completion,
+failure, cleanup, and recovery where applicable.
+
 Example:
 
 Payment available
@@ -504,9 +629,7 @@ Payment available
 Payment unavailable
 → Order handles dependency failure
 
----
-
-24. Current Phase Verification
+Current Phase Verification
 
 At the end of each phase, verify the phase's acceptance criteria.
 
@@ -514,16 +637,19 @@ Do not move to the next phase merely because the code compiles.
 
 A phase is complete only when:
 
-- Required functionality exists.
-- Expected behavior works.
-- Failure cases are handled where required.
-- The implementation matches the architecture.
-- The acceptance criteria are satisfied.
-- Documentation is updated.
+Required functionality exists.
 
----
+Expected behavior works.
 
-25. Documentation Rules
+Failure cases are handled where required.
+
+The implementation matches the architecture.
+
+The acceptance criteria are satisfied.
+
+Documentation is updated.
+
+Documentation Rules
 
 Documentation must describe the actual system, not an imagined future system.
 
@@ -539,36 +665,43 @@ Do not document future architecture as if it already exists.
 
 When implementation changes the architecture:
 
-1. Update the relevant documentation.
-2. Record the decision in "memory.md".
-3. Explain why the architecture changed.
+Update the relevant documentation.
 
----
+Record the decision in "memory.md".
 
-26. Memory Rules
+Explain why the architecture changed.
+
+Memory Rules
 
 When "docs/memory.md" exists, update it after meaningful development milestones.
 
 It should record:
 
-- Current phase
-- Current task
-- Completed work
-- Current architecture
-- Important decisions
-- Files created/modified
-- Known issues
-- Tests performed
-- Next task
-- Last updated date
+Current phase
+
+Current task
+
+Completed work
+
+Current architecture
+
+Important decisions
+
+Files created/modified
+
+Known issues
+
+Tests performed
+
+Next task
+
+Last updated date
 
 The memory file should describe what actually happened.
 
 Do not use it as a second PRD or architecture document.
 
----
-
-27. Git Rules
+Git Rules
 
 Make meaningful commits after stable milestones.
 
@@ -583,41 +716,53 @@ feat: add experiment queue
 
 Do not commit:
 
-- "node_modules"
-- ".env"
-- secrets
-- generated build artifacts unless required
-- temporary debugging files
+"node_modules"
 
----
+".env"
 
-28. Code Quality Rules
+secrets
+
+generated build artifacts unless required
+
+temporary debugging files
+
+Code Quality Rules
 
 Prefer:
 
-- Clear variable names
-- Small functions
-- Single responsibility
-- Explicit control flow
-- Simple architecture
-- Consistent formatting
-- Meaningful error handling
+Clear variable names
+
+Small functions
+
+Single responsibility
+
+Explicit control flow
+
+Simple architecture
+
+Consistent formatting
+
+Meaningful error handling
 
 Avoid:
 
-- Unnecessary cleverness
-- Deeply nested logic
-- Giant functions
-- Duplicate code when reuse is genuinely justified
-- Unused dependencies
-- Unused files
-- Dead code
+Unnecessary cleverness
+
+Deeply nested logic
+
+Giant functions
+
+Duplicate code when reuse is genuinely justified
+
+Unused dependencies
+
+Unused files
+
+Dead code
 
 Code should be understandable to a developer learning the system.
 
----
-
-29. Learning-Oriented Development Rule
+Learning-Oriented Development Rule
 
 ChaosGuard is also a learning project.
 
@@ -625,36 +770,47 @@ Whenever a new major technology is introduced, its purpose should be understanda
 
 For every major technology, the developer should be able to answer:
 
-1. What problem does it solve?
-2. Why does ChaosGuard need it?
-3. Why are we introducing it now?
-4. What would happen if we did not use it?
-5. How does it interact with the existing architecture?
+What problem does it solve?
+
+Why does ChaosGuard need it?
+
+Why are we introducing it now?
+
+What would happen if we did not use it?
+
+How does it interact with the existing architecture?
 
 The implementation should not hide these concepts behind unnecessary abstractions.
 
----
-
-30. Stop Conditions for AI Agents
+Stop Conditions for AI Agents
 
 The AI coding agent must stop and ask for clarification when:
 
-- Requirements conflict.
-- A major architectural decision is unclear.
-- A requested change would break an existing contract.
-- A new dependency is necessary but not justified.
-- The current phase does not provide enough information.
-- A potentially destructive operation is requested without explicit scope.
-- The agent discovers that the architecture document and actual implementation disagree significantly.
+Requirements conflict.
+
+A major architectural decision is unclear.
+
+A requested change would break an existing contract.
+
+A new dependency is necessary but not justified.
+
+The current phase does not provide enough information.
+
+A potentially destructive operation is requested without explicit scope.
+
+The agent discovers that the architecture document and actual implementation disagree significantly.
 
 Do not guess silently in these situations.
 
----
-
-31. Final Rule
+Final Rule
 
 The most important rule is:
 
 «Build only what is needed, understand why it is needed, verify that it works, document what actually happened, and only then move to the next phase.»
 
-ChaosGuard should remain a coherent engineering project rather than a collection of technologies added for the sake of the resume.
+ChaosGuard should remain a coherent engineering project rather than a collection
+of technologies added for the sake of the resume.
+
+The core goal is not to accumulate infrastructure. It is to build a controlled,
+observable, measurable resilience-testing system and understand every major
+technology used to build it.

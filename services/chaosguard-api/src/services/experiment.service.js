@@ -1,12 +1,21 @@
 // ============================================================
-// Experiment Service — Phase 4
+// Experiment Service — Phase 5
 // ============================================================
 //
 // Contains the core experiment logic:
 // - Validation
-// - Lifecycle management
-// - Experiment execution (activate fault → wait duration → clear fault)
-// - Recovery on failure
+// - Lifecycle management (PENDING → QUEUED → RUNNING → COMPLETED/FAILED)
+// - Enqueuing experiment jobs to BullMQ (execution moved to worker)
+// - Status synchronisation from BullMQ job state
+// - Stop handling (remove queued job OR clear fault directly on target)
+//
+// Phase 5 change from Phase 4:
+// - start() no longer executes experiments in-process.
+//   Instead it adds a job to BullMQ and returns immediately.
+// - The experiment-worker service consumes the job and handles
+//   fault activation, duration, and cleanup.
+// - The API process learns about worker progress on demand, by
+//   checking the BullMQ job state in syncStatusFromQueue().
 //
 // This is separate from the controller so the controller only
 // handles HTTP request/response concerns.
@@ -20,9 +29,7 @@ const {
   updateExperiment,
 } = require('../models/experiment.model');
 const targetService = require('./target.service');
-
-// Track active experiment timers so they can be cancelled by stop.
-const activeTimers = new Map();
+const experimentQueue = require('../queues/experiment.queue');
 
 // ---- Validation ----
 
@@ -70,6 +77,9 @@ function create(input) {
 }
 
 // ---- Start ----
+//
+// Phase 5: transitions PENDING → QUEUED and adds a BullMQ job.
+// Returns immediately after enqueueing — does not wait for the experiment to run.
 
 async function start(id) {
   const experiment = getExperiment(id);
@@ -77,6 +87,9 @@ async function start(id) {
     return { success: false, status: 404, error: 'Experiment not found' };
   }
 
+  if (experiment.status === 'QUEUED') {
+    return { success: false, status: 409, error: 'Experiment is already queued' };
+  }
   if (experiment.status === 'RUNNING') {
     return { success: false, status: 409, error: 'Experiment is already running' };
   }
@@ -87,116 +100,177 @@ async function start(id) {
     return { success: false, status: 409, error: 'Experiment has failed and cannot be restarted' };
   }
 
-  // Transition: PENDING → RUNNING
+  // Transition: PENDING → QUEUED
   updateExperiment(id, {
-    status: 'RUNNING',
-    startedAt: new Date().toISOString(),
+    status: 'QUEUED',
+    queuedAt: new Date().toISOString(),
   });
 
   try {
-    // Activate the fault on the target service
-    await targetService.activateFault(
-      experiment.target,
-      experiment.fault,
-      experiment.parameters
-    );
-
-    console.log(`[EXPERIMENT] ${id} started — ${experiment.fault} on ${experiment.target} for ${experiment.duration}s`);
-
-    // Schedule fault removal after duration
-    const timer = setTimeout(async () => {
-      activeTimers.delete(id);
-      await completeExperiment(id);
-    }, experiment.duration * 1000);
-
-    activeTimers.set(id, timer);
-
-    return { success: true, experiment: getExperiment(id) };
-  } catch (err) {
-    // Fault activation failed — try to recover
-    console.error(`[EXPERIMENT] ${id} failed to activate fault: ${err.message}`);
-    await bestEffortClear(experiment.target);
-
-    updateExperiment(id, {
-      status: 'FAILED',
-      error: `Failed to activate fault: ${err.message}`,
-      completedAt: new Date().toISOString(),
+    const job = await experimentQueue.addExperimentJob({
+      experimentId: id,
+      target: experiment.target,
+      fault: experiment.fault,
+      parameters: experiment.parameters,
+      duration: experiment.duration,
     });
 
+    // Store the BullMQ job ID so we can look it up later during status sync.
+    updateExperiment(id, { jobId: job.id });
+
+    console.log(`[EXPERIMENT] ${id} queued — BullMQ job ${job.id}`);
+    return { success: true, experiment: getExperiment(id) };
+  } catch (err) {
+    // Failed to enqueue — roll back to PENDING so the experiment can be retried.
+    console.error(`[EXPERIMENT] ${id} failed to enqueue: ${err.message}`);
+    updateExperiment(id, {
+      status: 'PENDING',
+      queuedAt: null,
+    });
     return {
       success: false,
       status: 502,
-      error: `Failed to activate fault on ${experiment.target}: ${err.message}`,
+      error: `Failed to enqueue experiment: ${err.message}`,
     };
   }
 }
 
 // ---- Stop ----
+//
+// Handles stopping an experiment that is in QUEUED or RUNNING state.
+//
+// QUEUED: Remove the job from the queue before the worker picks it up.
+// RUNNING: Call clearFault directly on the target (the worker will detect
+//          the fault is already cleared and finish gracefully).
 
 async function stop(id) {
-  const experiment = getExperiment(id);
+  let experiment = getExperiment(id);
   if (!experiment) {
     return { success: false, status: 404, error: 'Experiment not found' };
   }
 
-  if (experiment.status !== 'RUNNING') {
+  if (experiment.status === 'COMPLETED') {
+    return { success: false, status: 409, error: 'Cannot stop experiment with status: COMPLETED' };
+  }
+  if (experiment.status === 'FAILED') {
+    return { success: false, status: 409, error: 'Cannot stop experiment with status: FAILED' };
+  }
+  if (experiment.status === 'PENDING') {
+    return { success: false, status: 409, error: 'Cannot stop experiment with status: PENDING' };
+  }
+
+  // Synchronise latest status from BullMQ if in a transitional state
+  if (['QUEUED', 'RUNNING'].includes(experiment.status) && experiment.jobId) {
+    experiment = await syncStatusFromQueue(experiment);
+  }
+
+  // Re-check status after sync in case it completed or failed in the meantime
+  if (experiment.status === 'COMPLETED' || experiment.status === 'FAILED') {
     return { success: false, status: 409, error: `Cannot stop experiment with status: ${experiment.status}` };
   }
 
-  // Cancel the duration timer
-  const timer = activeTimers.get(id);
-  if (timer) {
-    clearTimeout(timer);
-    activeTimers.delete(id);
+  if (experiment.status === 'QUEUED') {
+    // Attempt to remove from queue before the worker picks it up.
+    let removed = false;
+    try {
+      const job = await experimentQueue.getJob(experiment.jobId);
+      if (job) {
+        await job.remove();
+        removed = true;
+      }
+    } catch (err) {
+      console.warn(`[EXPERIMENT] ${id} stop: job could not be removed from queue: ${err.message}`);
+    }
+
+    if (removed) {
+      updateExperiment(id, {
+        status: 'COMPLETED',
+        faultCleared: true, // no fault was ever activated
+        completedAt: new Date().toISOString(),
+      });
+
+      console.log(`[EXPERIMENT] ${id} stopped while queued — no fault was activated`);
+      return { success: true, experiment: getExperiment(id) };
+    }
+
+    // If job could not be removed (e.g. worker has already locked/started it),
+    // treat as RUNNING to guarantee the target fault is cleared safely.
+    console.log(`[EXPERIMENT] ${id} job was locked by worker, treating as RUNNING for safe stop`);
+    experiment = updateExperiment(id, { status: 'RUNNING' });
   }
 
-  // Clear the fault
-  try {
-    await targetService.clearFault(experiment.target);
-  } catch (err) {
-    console.error(`[EXPERIMENT] ${id} failed to clear fault on stop: ${err.message}`);
-  }
+  if (experiment.status === 'RUNNING') {
+    // Clear fault directly on target service (worker will detect and finish gracefully)
+    let faultCleared = false;
+    try {
+      await targetService.clearFault(experiment.target);
+      faultCleared = true;
+    } catch (err) {
+      console.error(`[EXPERIMENT] ${id} stop: failed to clear fault: ${err.message}`);
+    }
 
-  updateExperiment(id, {
-    status: 'COMPLETED',
-    completedAt: new Date().toISOString(),
-  });
-
-  console.log(`[EXPERIMENT] ${id} stopped early`);
-  return { success: true, experiment: getExperiment(id) };
-}
-
-// ---- Internal helpers ----
-
-async function completeExperiment(id) {
-  const experiment = getExperiment(id);
-  if (!experiment || experiment.status !== 'RUNNING') return;
-
-  try {
-    await targetService.clearFault(experiment.target);
-    console.log(`[EXPERIMENT] ${id} completed — fault cleared`);
-  } catch (err) {
-    console.error(`[EXPERIMENT] ${id} failed to clear fault on completion: ${err.message}`);
     updateExperiment(id, {
-      status: 'FAILED',
-      error: `Failed to clear fault: ${err.message}`,
+      status: 'COMPLETED',
+      faultCleared,
       completedAt: new Date().toISOString(),
     });
-    return;
+
+    console.log(`[EXPERIMENT] ${id} stopped early — faultCleared: ${faultCleared}`);
+    return { success: true, experiment: getExperiment(id) };
   }
 
-  updateExperiment(id, {
-    status: 'COMPLETED',
-    completedAt: new Date().toISOString(),
-  });
+  return { success: false, status: 409, error: `Cannot stop experiment with status: ${experiment.status}` };
 }
 
-async function bestEffortClear(target) {
+// ---- Status synchronisation ----
+//
+// The API process does not receive push notifications from the worker.
+// When the experiment is in a transitional state (QUEUED or RUNNING),
+// this function checks the BullMQ job state and synchronises the
+// in-memory experiment record.
+//
+// Called by the controller on GET /experiments/:id.
+
+async function syncStatusFromQueue(experiment) {
+  if (!experiment.jobId) return experiment;
+
+  let job;
   try {
-    await targetService.clearFault(target);
+    job = await experimentQueue.getJob(experiment.jobId);
   } catch (err) {
-    console.error(`[EXPERIMENT] best-effort fault clear failed: ${err.message}`);
+    console.error(`[EXPERIMENT] ${experiment.id} syncStatus: failed to get job: ${err.message}`);
+    return experiment;
   }
+
+  if (!job) return experiment;
+
+  const state = await job.getState();
+
+  if (state === 'completed' && experiment.status !== 'COMPLETED') {
+    const result = job.returnvalue;
+    updateExperiment(experiment.id, {
+      status: 'COMPLETED',
+      startedAt: result?.startedAt || experiment.startedAt,
+      completedAt: result?.completedAt || new Date().toISOString(),
+      faultCleared: result?.faultCleared ?? null,
+    });
+  } else if (state === 'failed' && experiment.status !== 'FAILED') {
+    // For failed jobs, faultCleared is stored in job.progress (not returnvalue)
+    // because a thrown error does not allow a BullMQ return value.
+    updateExperiment(experiment.id, {
+      status: 'FAILED',
+      error: job.failedReason || 'Worker execution failed',
+      completedAt: new Date().toISOString(),
+      faultCleared: job.progress?.faultCleared ?? false,
+    });
+  } else if (state === 'active' && experiment.status === 'QUEUED') {
+    updateExperiment(experiment.id, {
+      status: 'RUNNING',
+      startedAt: new Date().toISOString(),
+    });
+  }
+
+  return getExperiment(experiment.id);
 }
 
-module.exports = { create, start, stop };
+module.exports = { create, start, stop, syncStatusFromQueue };

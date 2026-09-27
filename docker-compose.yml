@@ -1,4 +1,10 @@
 services:
+  # Phase 5: Redis provides the backing store for BullMQ experiment jobs.
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
   chaosguard-api:
     build: ./services/chaosguard-api
     ports:
@@ -7,7 +13,21 @@ services:
       - PORT=3000
       # Phase 4: ChaosGuard communicates with target services over the Docker network.
       - PAYMENT_SERVICE_URL=http://payment-service:3002
+      # Phase 5: Redis connection for BullMQ experiment queue.
+      - REDIS_URL=redis://redis:6379
     depends_on:
+      - payment-service
+      - redis
+
+  # Phase 5: Experiment Worker — consumes experiment jobs from BullMQ.
+  # Not an HTTP server — no ports exposed.
+  experiment-worker:
+    build: ./services/experiment-worker
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - PAYMENT_SERVICE_URL=http://payment-service:3002
+    depends_on:
+      - redis
       - payment-service
 
   order-service:
@@ -32,5 +52,3 @@ services:
       - FAULT_LATENCY_MS=${FAULT_LATENCY_MS:-}
       - FAULT_ERROR=${FAULT_ERROR:-}
       - FAULT_UNAVAILABLE=${FAULT_UNAVAILABLE:-}
-
-

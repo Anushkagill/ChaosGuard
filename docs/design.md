@@ -1,34 +1,42 @@
 ChaosGuard — Design System
 
-1. Purpose
+Purpose
 
 This document defines the visual and interaction direction for the ChaosGuard frontend.
 
 The design should communicate:
 
-- Reliability engineering
-- Distributed systems
-- Observability
-- Controlled experimentation
-- Technical depth
-- AI-assisted analysis
+Reliability engineering
+
+Distributed systems
+
+Observability
+
+Controlled experimentation
+
+Technical depth
+
+Resilience analysis
 
 The interface should feel like an engineering/observability platform rather than a generic SaaS dashboard.
 
 The design system should remain consistent across the application.
 
----
-
-2. Design Philosophy
+Design Philosophy
 
 ChaosGuard should have a:
 
-- Modern
-- Technical
-- Clean
-- Professional
-- Developer-focused
-- Data-oriented
+Modern
+
+Technical
+
+Clean
+
+Professional
+
+Developer-focused
+
+Data-oriented
 
 visual identity.
 
@@ -36,44 +44,51 @@ The interface should prioritize information clarity over decoration.
 
 The most important information should always be easy to identify:
 
-1. Current system health
-2. Running experiment
-3. Target service
-4. Fault being injected
-5. Affected services
-6. Experiment result
-7. AI analysis
-8. Resilience recommendations
+Current system health
+
+Running experiment
+
+Target service
+
+Fault being injected
+
+Affected services
+
+Experiment result
+
+Experiment and resilience analysis
+
+Resilience recommendations
 
 The UI should make complex distributed-system behavior easier to understand visually.
 
----
-
-3. Visual Direction
+Visual Direction
 
 The visual direction should combine:
 
 Observability Dashboard
-        +
++
 Developer Tool
-        +
++
 Chaos Engineering Platform
-        +
-Modern AI Product
++
+Reliability Engineering Tool
 
 Avoid making the interface look like:
 
-- A generic admin panel
-- A generic e-commerce dashboard
-- A simple CRUD application
-- A flashy marketing website
-- An overly animated AI chatbot
+A generic admin panel
+
+A generic e-commerce dashboard
+
+A simple CRUD application
+
+A flashy marketing website
+
+An overly animated AI chatbot
 
 The product should look like a serious engineering tool.
 
----
-
-4. Color Philosophy
+Color Philosophy
 
 Colors should communicate system state and severity.
 
@@ -81,9 +96,7 @@ The primary interface should use a restrained neutral foundation with a distinct
 
 Avoid using too many bright colors simultaneously.
 
----
-
-5. System Status Colors
+System Status Colors
 
 The following semantic states should remain consistent throughout the application.
 
@@ -91,74 +104,75 @@ Healthy
 
 Represents:
 
-- Service operating normally
-- Experiment completed successfully
-- Healthy dependency
+Service operating normally
+
+Experiment completed successfully
+
+Healthy dependency
 
 State: HEALTHY
 
 Use the standard success/healthy visual treatment.
 
----
-
 Degraded
 
 Represents:
 
-- Increased latency
-- Partial failure
-- Performance degradation
-- Dependency impact
+Increased latency
+
+Partial failure
+
+Performance degradation
+
+Dependency impact
 
 State: DEGRADED
 
 Use the standard warning visual treatment.
 
----
-
 Failed
 
 Represents:
 
-- Service unavailable
-- Experiment-induced failure
-- Critical dependency failure
+Service unavailable
+
+Experiment-induced failure
+
+Critical dependency failure
 
 State: FAILED
 
 Use the standard error/critical visual treatment.
 
----
-
 Running
 
 Represents:
 
-- Experiment currently executing
-- Service currently being tested
-- Active experiment state
+Experiment currently executing
+
+Service currently being tested
+
+Active experiment state
 
 State: RUNNING
 
 Use the standard active/in-progress visual treatment.
 
----
-
 Unknown
 
 Represents:
 
-- Unknown service state
-- Missing telemetry
-- Unable to determine current state
+Unknown service state
+
+Missing telemetry
+
+Unable to determine current state
 
 State: UNKNOWN
 
 Use a neutral visual treatment.
 
----
-
-6. Semantic Color Principle
+Semantic Color Principle
 
 Colors must communicate meaning rather than decoration.
 
@@ -174,9 +188,7 @@ The exact color values may be finalized during frontend implementation.
 
 Components should use semantic design tokens rather than hardcoding arbitrary colors throughout the codebase.
 
----
-
-7. Typography
+Typography
 
 Typography should prioritize readability.
 
@@ -204,25 +216,31 @@ Metadata
 
 Used for:
 
-- timestamps
-- service names
-- experiment IDs
-- status information
-- technical details
+timestamps
+
+service names
+
+experiment IDs
+
+status information
+
+technical details
 
 Code / Technical Data
 
 Use a monospace font for:
 
-- API paths
-- IDs
-- logs
-- code
-- technical values
+API paths
 
----
+IDs
 
-8. Recommended Typography Direction
+logs
+
+code
+
+technical values
+
+Recommended Typography Direction
 
 Primary UI font:
 
@@ -240,136 +258,139 @@ or an equivalent developer-oriented monospace font.
 
 The implementation should use a consistent typography scale rather than arbitrary font sizes.
 
----
-
-9. Layout Principles
+Layout Principles
 
 The interface should use a structured dashboard layout.
 
 Major areas may include:
 
 ┌───────────────────────────────────────────────┐
-│ Navigation / Header                           │
+│ Navigation / Header │
 ├───────────────────────────────────────────────┤
-│                                               │
-│ Main Content                                  │
-│                                               │
-│  System Overview                              │
-│                                               │
-│  Experiment / Topology / Results              │
-│                                               │
+│ │
+│ Main Content │
+│ │
+│ System Overview │
+│ │
+│ Experiment / Topology / Results │
+│ │
 └───────────────────────────────────────────────┘
 
 The exact layout can evolve as features are implemented.
 
 Do not force the final layout before the actual feature requirements are known.
 
----
-
-10. Dashboard Information Hierarchy
+Dashboard Information Hierarchy
 
 The dashboard should prioritize:
 
 System Health
-      ↓
+↓
 Active Experiment
-      ↓
+↓
 Topology
-      ↓
+↓
 Affected Services
-      ↓
+↓
 Experiment Results
-      ↓
-AI Analysis
-      ↓
+↓
+Observed Results
+↓
+Resilience Analysis
+↓
 Recommendations
 
 Critical information should be visible without requiring the user to search through multiple screens.
 
----
-
-11. Service Representation
+Service Representation
 
 Each service should have a clear visual identity.
 
 A service representation may include:
 
 ┌─────────────────────────┐
-│ Payment Service         │
-│                         │
-│ ● HEALTHY               │
-│                         │
-│ Port: 3002              │
+│ Payment Service │
+│ │
+│ ● HEALTHY │
+│ │
+│ Port: 3002 │
 └─────────────────────────┘
 
 Potential information:
 
-- Service name
-- Current state
-- Dependencies
-- Port/environment information where useful
-- Current experiment
-- Relevant metrics
+Service name
+
+Current state
+
+Dependencies
+
+Port/environment information where useful
+
+Current experiment
+
+Relevant metrics
 
 Do not overload service cards with unnecessary information.
 
----
-
-12. Topology Visualization
+Topology Visualization
 
 The topology is one of the most important visual components of ChaosGuard.
 
 Example:
 
-              Auth 🟢
-                 |
-                 v
-             Order 🟡
-              /    \
-             /      \
-            v        v
-       Payment 🔴  Inventory 🟢
-
+          Auth 🟢
+             |
+             v
+         Order 🟡
+          /    \
+         /      \
+        v        v
+   Payment 🔴  Inventory 🟢
 The topology should communicate:
 
-- Direction of dependencies
-- Target service
-- Healthy services
-- Degraded services
-- Failed services
-- Failure propagation
+Direction of dependencies
+
+Target service
+
+Healthy services
+
+Degraded services
+
+Failed services
+
+Failure propagation
 
 The graph should make the relationship between services visually obvious.
 
----
-
-13. Experiment State Visualization
+Experiment State Visualization
 
 Experiments should have a clear lifecycle.
 
 Configured
-    ↓
-Queued
-    ↓
-Running
-    ↓
-Fault Injected
-    ↓
+↓
+PENDING
+↓
+QUEUED
+↓
+RUNNING
+↓
 Observing
-    ↓
-Completed
+↓
+COMPLETED
 
 Possible final states:
 
-Completed
-Failed
-Cancelled
+COMPLETED
+FAILED
+CANCELLED
+
+The UI may communicate internal execution milestones such as fault activation,
+observation, cleanup, and recovery, but the primary experiment state should remain
+clear and consistent with the backend lifecycle.
 
 Each state should have a consistent visual representation.
 
----
-
-14. Experiment Configuration UI
+Experiment Configuration UI
 
 The experiment configuration interface should make the experiment explicit before execution.
 
@@ -387,18 +408,20 @@ Duration
 Latency
 [ 3000 ms ]
 
-             [ Run Experiment ]
-
+         [ Run Experiment ]
 The user should clearly understand:
 
-- What service will be affected
-- What fault will be injected
-- What parameters will be used
-- What action will happen after clicking the button
+What service will be affected
 
----
+What fault will be injected
 
-15. Experiment Execution UX
+What parameters will be used
+
+That clicking the button creates a PENDING experiment
+
+That execution starts separately through the Start Experiment action
+
+Experiment Execution UX
 
 When an experiment is running, the interface should communicate progress.
 
@@ -407,7 +430,7 @@ Example:
 EXPERIMENT RUNNING
 
 Payment Service
-      ↓
+↓
 Latency Injection: 3000 ms
 
 Status:
@@ -422,11 +445,45 @@ Elapsed:
 
 The user should not be left wondering whether the experiment is still running.
 
----
+Experiment Results
 
-16. Experiment Results
+The result view should clearly separate baseline observations, during-experiment observations, recovery observations, measured metrics, and interpretation.
 
-The result view should clearly separate observed facts from interpretation.
+A useful result structure is:
+
+BEFORE
+
+Baseline health
+
+Baseline latency/error rate
+
+DURING
+
+Injected fault
+
+Service state changes
+
+Error/latency impact
+
+Failure propagation
+
+AFTER
+
+Fault removed
+
+Recovery state
+
+Remaining degradation
+
+COMPARISON
+
+Baseline vs experiment
+
+Recovery behavior
+
+Resilience indicators
+
+Interpretation should remain visually separate from measured system behavior.
 
 Example:
 
@@ -450,7 +507,7 @@ Order response latency increased.
 
 Then separately:
 
-AI ANALYSIS
+RESILIENCE ANALYSIS
 
 Risk:
 HIGH
@@ -459,21 +516,22 @@ Explanation:
 Payment is a critical dependency of Order.
 
 Recommendations:
-- Add timeout handling
-- Consider circuit breaker protection
-- Test complete Payment failure
+
+Add timeout handling
+
+Consider circuit breaker protection
+
+Test complete Payment failure
 
 This distinction is important.
 
-Observed system behavior should not be visually confused with AI-generated interpretation.
+Observed system behavior should not be visually confused with analysis/interpretation.
 
----
+Resilience Analysis UI
 
-17. AI Analysis UI
+Analysis should feel integrated into the engineering workflow rather than appearing as a generic chatbot. If AI-assisted analysis is introduced later, it should be presented as an analysis layer over observed experiment data.
 
-AI-generated information should feel integrated into the engineering workflow rather than appearing as a generic chatbot.
-
-The AI section should communicate:
+The analysis section should communicate:
 
 What happened
 
@@ -491,13 +549,11 @@ Recommendations
 
 Actionable resilience improvements.
 
-Supporting Knowledge
+Supporting Evidence
 
-When RAG is implemented, relevant retrieved knowledge may be shown or referenced.
+When analysis is available, supporting experiment data, metrics, timelines, and previous experiment results may be shown or referenced. Generic knowledge retrieval is not part of the core interface.
 
----
-
-18. Risk Visualization
+Risk Visualization
 
 Risk should be immediately understandable.
 
@@ -510,39 +566,82 @@ CRITICAL
 
 Risk should be represented using:
 
-- Text
-- Semantic color
-- Optional icon
+Text
+
+Semantic color
+
+Optional icon
 
 Do not rely only on color to communicate risk.
 
----
+18.5 Resilience Comparison
 
-19. Cards
+ChaosGuard is intended to support a repeatable resilience-testing loop.
+
+The UI should make it possible to compare:
+
+Baseline
+↓
+Chaos Experiment
+↓
+Resilience Improvement
+↓
+Same Experiment Again
+↓
+Comparison
+
+Useful comparison values may include:
+
+Response latency
+
+p95 latency when available
+
+Error rate
+
+Timeout rate
+
+Recovery time
+
+Affected services
+
+Failure propagation
+
+Experiment duration
+
+The comparison view should show measured differences rather than assigning a
+single overall score unless a future product requirement explicitly defines one.
+
+Cards
 
 Cards should be used to group related information.
 
 Examples:
 
-- Service health
-- Experiment configuration
-- Experiment result
-- AI analysis
-- Metrics
-- Recommendations
+Service health
+
+Experiment configuration
+
+Experiment result
+
+Resilience analysis
+
+Metrics
+
+Recommendations
 
 Cards should have:
 
-- Clear hierarchy
-- Consistent padding
-- Moderate border radius
-- Subtle separation from the background
+Clear hierarchy
+
+Consistent padding
+
+Moderate border radius
+
+Subtle separation from the background
 
 Avoid excessive card nesting.
 
----
-
-20. Buttons
+Buttons
 
 Buttons should clearly communicate action type.
 
@@ -564,24 +663,25 @@ Stop Experiment
 
 should clearly communicate what will happen.
 
----
-
-21. Forms
+Forms
 
 Forms should:
 
-- Clearly label inputs
-- Show valid input expectations
-- Provide useful validation errors
-- Avoid unnecessary fields
-- Clearly distinguish required fields
-- Prevent invalid experiment configurations
+Clearly label inputs
+
+Show valid input expectations
+
+Provide useful validation errors
+
+Avoid unnecessary fields
+
+Clearly distinguish required fields
+
+Prevent invalid experiment configurations
 
 Experiment configuration should prioritize safety and clarity.
 
----
-
-22. Loading States
+Loading States
 
 Every asynchronous operation should have a visible loading state where appropriate.
 
@@ -591,18 +691,17 @@ Loading topology...
 Running experiment...
 Fetching results...
 Analyzing experiment...
-Retrieving knowledge...
+Loading experiment data...
 
 Avoid leaving blank areas while data is being loaded.
 
----
-
-23. Error States
+Error States
 
 Errors should explain:
 
-1. What went wrong.
-2. What the user can do next.
+What went wrong.
+
+What the user can do next.
 
 Example:
 
@@ -618,9 +717,7 @@ Something went wrong.
 
 when a more useful explanation is possible.
 
----
-
-24. Empty States
+Empty States
 
 Empty states should explain what the user can do next.
 
@@ -633,27 +730,27 @@ to observe failure propagation.
 
 [Create Experiment]
 
----
-
-25. Motion and Animation
+Motion and Animation
 
 Animations should be purposeful.
 
 Useful animations may include:
 
-- Service state transitions
-- Experiment progress
-- Topology state changes
-- Loading indicators
-- Event propagation
+Service state transitions
+
+Experiment progress
+
+Topology state changes
+
+Loading indicators
+
+Event propagation
 
 Avoid excessive animation.
 
 The product is an engineering tool, so motion should communicate system behavior rather than distract from it.
 
----
-
-26. Accessibility
+Accessibility
 
 The UI should not rely only on color.
 
@@ -667,44 +764,49 @@ should include text/state information in addition to color.
 
 Interactive elements should have:
 
-- Clear labels
-- Visible focus states
-- Sufficient contrast
-- Understandable error messages
+Clear labels
 
----
+Visible focus states
 
-27. Responsive Design
+Sufficient contrast
+
+Understandable error messages
+
+Responsive Design
 
 The application should work across:
 
-- Desktop
-- Laptop
-- Tablet
+Desktop
+
+Laptop
+
+Tablet
 
 The topology visualization should receive special consideration because graph-based layouts require sufficient screen space.
 
 The desktop experience should be the primary optimization target because ChaosGuard is a developer/engineering tool.
 
----
-
-28. Design Tokens
+Design Tokens
 
 The frontend should eventually define reusable design tokens for:
 
-- Colors
-- Typography
-- Spacing
-- Border radius
-- Shadows
-- Status states
-- Component sizes
+Colors
+
+Typography
+
+Spacing
+
+Border radius
+
+Shadows
+
+Status states
+
+Component sizes
 
 Components should consume these tokens rather than repeatedly defining arbitrary values.
 
----
-
-29. Design Evolution
+Design Evolution
 
 The design system may evolve as new functionality is introduced.
 
@@ -718,15 +820,13 @@ Observable
 +
 Experiment-focused
 +
-AI-assisted
+Resilience-focused
 
 Do not redesign the entire interface when adding a new feature.
 
 Extend the existing design system.
 
----
-
-30. Design Principle
+Design Principle
 
 The most important design rule is:
 
@@ -740,7 +840,54 @@ What experiment is running?
 What service was targeted?
 What services were affected?
 What happened?
+What evidence explains the impact?
 Why did it happen?
 What should I improve?
 
 The UI exists to make these answers obvious.
+
+Product Alignment
+
+The design system should reflect the current ChaosGuard product direction.
+
+Core product concepts:
+
+Controlled chaos experiments
+
+Microservice health
+
+Failure propagation
+
+Observability
+
+Metrics
+
+Experiment history
+
+Resilience testing
+
+Before/after comparison
+
+The interface should not make AI the primary product identity.
+
+AI-assisted analysis is an optional future layer that can explain observed
+experiment behavior and suggest resilience improvements. The core UI must remain
+useful without AI.
+
+RAG and vector-search interfaces are not part of the current core design.
+
+The visual hierarchy should therefore emphasize:
+
+System Health
+→ Experiment
+→ Fault
+→ Topology
+→ Impact
+→ Metrics
+→ Recovery
+→ Comparison
+→ Resilience Improvements
+
+This keeps the design aligned with ChaosGuard's central loop:
+
+Break → Observe → Measure → Improve → Rerun → Compare

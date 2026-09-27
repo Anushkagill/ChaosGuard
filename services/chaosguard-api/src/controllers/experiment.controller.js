@@ -1,5 +1,5 @@
 // ============================================================
-// Experiment Controller — Phase 4
+// Experiment Controller — Phase 5
 // ============================================================
 //
 // Handles HTTP request/response for experiment endpoints.
@@ -11,6 +11,7 @@
 
 const { getExperiment, getAllExperiments } = require('../models/experiment.model');
 const experimentService = require('../services/experiment.service');
+const { syncStatusFromQueue } = experimentService;
 const { ApiError } = require('../utils/ApiError');
 
 // POST /experiments
@@ -29,15 +30,31 @@ async function createExperiment(req, res) {
 // GET /experiments
 async function listExperiments(req, res) {
   const experiments = getAllExperiments();
-  return res.status(200).json(experiments);
+  const synced = await Promise.all(
+    experiments.map(async (exp) => {
+      if (['QUEUED', 'RUNNING'].includes(exp.status) && exp.jobId) {
+        return syncStatusFromQueue(exp);
+      }
+      return exp;
+    })
+  );
+  return res.status(200).json(synced);
 }
 
 // GET /experiments/:id
+// Phase 5: syncs status from BullMQ when the experiment is in a
+// transitional state (QUEUED or RUNNING). The worker does not push
+// updates to the API — the API checks on demand.
 async function getExperimentById(req, res) {
-  const experiment = getExperiment(req.params.id);
+  let experiment = getExperiment(req.params.id);
   if (!experiment) {
     throw new ApiError(404, 'Experiment not found');
   }
+
+  if (['QUEUED', 'RUNNING'].includes(experiment.status) && experiment.jobId) {
+    experiment = await syncStatusFromQueue(experiment);
+  }
+
   return res.status(200).json(experiment);
 }
 
