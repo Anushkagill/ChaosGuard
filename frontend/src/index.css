@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0B0F17;
+    color: #F3F4F6;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Custom subtle dark scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0B0F17;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #1F2937;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #374151;
+  }
+}
+
+@layer utilities {
+  .bg-grid-pattern {
+    background-size: 32px 32px;
+    background-image: 
+      linear-gradient(to right, rgba(31, 41, 55, 0.25) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(31, 41, 55, 0.25) 1px, transparent 1px);
+  }
+  
+  .glass-panel {
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(31, 41, 55, 0.9);
+  }
+
+  .glow-healthy {
+    box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.3);
+  }
+
+  .glow-degraded {
+    box-shadow: 0 0 15px -3px rgba(245, 158, 11, 0.35);
+  }
+
+  .glow-failed {
+    box-shadow: 0 0 15px -3px rgba(239, 68, 68, 0.4);
+  }
+
+  .glow-running {
+    box-shadow: 0 0 15px -3px rgba(56, 189, 248, 0.35);
+  }
+}
