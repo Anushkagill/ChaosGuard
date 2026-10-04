@@ -2,7 +2,7 @@ ChaosGuard — Memory
 
 Current Phase
 
-Phase 7 — React Dashboard (implemented and verified)
+Phase 8 — React Flow Topology (implemented and verified)
 
 Completed Work
 
@@ -230,6 +230,78 @@ Docker Compose updated:
   order-service wired to auth-service and inventory-service
   chaosguard-api and experiment-worker wired to new targets
   Full 7-container stack verified
+
+Phase 7 — React Dashboard
+
+Frontend application built with React 18, Vite, and Tailwind CSS in frontend/.
+
+Custom animated SVG cubic-bezier canvas visualization for the 4-node diamond cluster topology:
+  - Auth Service (:3003) at top (Step 1)
+  - Order Service (:3001) in center (Orchestrator)
+  - Payment Service (:3002) at bottom-left (Step 3)
+  - Inventory Service (:3004) at bottom-right (Step 2)
+
+Reverse proxy configured in vite.config.js routing /api/chaosguard (:3000), /api/order (:3001), /api/payment (:3002), /api/auth (:3003), and /api/inventory (:3004) directly to local Docker container ports without backend CORS changes.
+
+Cluster health polling and real-time fault detection across all 4 microservices.
+
+Full chaos experiment lifecycle management:
+  - Create experiment modal with architectural sequential impact analysis.
+  - Lifecycle states: PENDING -> QUEUED -> RUNNING -> COMPLETED / FAILED.
+  - Live countdown banner with real-time progress bar and emergency stop (POST /stop) control.
+  - Experiment history table with status badges and verified safety audit (faultCleared: true).
+  - Experiment audit detail modal displaying lifecycle timings and BullMQ job metadata.
+
+Interactive Order Flow Probe:
+  - Traces sequential order execution (Auth -> Inventory -> Payment).
+  - Highlights failure cascade propagation:
+    * Auth failure halts at Step 1, shielding Inventory and Payment.
+    * Inventory failure halts at Step 2, shielding Payment.
+    * Payment failure halts at Step 3 with 502 Bad Gateway.
+  - Raw JSON inspection and failure analysis.
+
+Real-time system event & audit console with severity filters, auto-scroll, and clipboard copy.
+
+Phase 8 — React Flow Topology
+
+Replaced hand-rolled SVG canvas with interactive node-based graph using @xyflow/react (v12):
+  - Retained strict visualization-only architecture (zero experiment execution logic inside graph components).
+  - Preserved existing App.jsx props interface (services, activeExperiment, probeStatus, onSelectService, onRunProbe).
+
+Custom Node Component (ChaosServiceNode.jsx):
+  - Renders microservice card with real-time health indicator (StatusDot), port pill, role, and response time.
+  - Active fault tags displaying latency delay or HTTP error code.
+  - Failure propagation visualization:
+    * 'target': Red pulsing border ring, glow, and animated target badge.
+    * 'affected': Amber warning ring and badge on dependent orchestrator (Order Service).
+    * 'shielded': Dimmed appearance with shield icon for downstream unreached services.
+    * 'nominal': Healthy standard styling.
+  - Probe state badges: active (spinning clock), success (green check), error (red cross), skipped.
+  - Custom React Flow connection handles matching the sequential pipeline layout.
+
+Custom Edge Component (ChaosEdge.jsx):
+  - Dynamic status-based stroke colors (emerald for healthy, amber for degraded, rose for failed, sky for probing, slate for inactive/shielded).
+  - Animated dash pattern for degraded and failed links.
+  - Animated particle flow along bezier curve for nominal and probing states.
+  - Midpoint step pill rendered via EdgeLabelRenderer (#1 Auth, #2 Reserve, #3 Payment) with nodrag/nopan protection.
+
+Failure Propagation Engine (src/utils/propagation.js):
+  - Pure function computing cascading failure impact across the sequential chain:
+    * Order -> Auth (Step 1): If Auth fails, Order is affected, Inventory & Payment are shielded.
+    * Order -> Inventory (Step 2): If Inventory fails, Auth is nominal, Order is affected, Payment is shielded.
+    * Order -> Payment (Step 3): If Payment fails, Auth and Inventory are nominal, Order is affected.
+  - Supports both active chaos experiments and manually injected runtime faults.
+  - Integrates seamlessly with live probe execution states.
+
+Container & Controls (ReactFlowTopology.jsx):
+  - Default diamond layout positions matching cluster architecture.
+  - Fully interactive: drag-and-drop node positioning with drag state preservation across re-renders.
+  - Pan and scroll-to-zoom capabilities.
+  - Integrated <Controls /> and <MiniMap /> with dark theme styling.
+  - Reset Layout action to restore default diamond positions.
+  - Clean deletion of obsolete Phase 7 files (ServiceTopology.jsx, ServiceNode.jsx, DependencyEdge.jsx).
+
+
 
 Utility & Error-Handling Integration
 
@@ -515,49 +587,31 @@ Target maps verified identical between ChaosGuard API and Experiment Worker.
 
 End-to-end automation test suite (test_step5_e2e.js) passed across all 5 verification stages.
 
-Phase 7 — React Dashboard (implemented and verified)
+Phase 7 verification:
 
-Frontend application built with React 18, Vite, and Tailwind CSS in frontend/.
+All frontend components build cleanly with zero syntax or bundling errors in Vite production build (npm run build).
 
-Custom animated SVG cubic-bezier canvas visualization for the 4-node diamond cluster topology:
-  - Auth Service (:3003) at top (Step 1)
-  - Order Service (:3001) in center (Orchestrator)
-  - Payment Service (:3002) at bottom-left (Step 3)
-  - Inventory Service (:3004) at bottom-right (Step 2)
+100% pass on comprehensive E2E test suite against live 7-container Docker cluster (test_phase7_frontend_e2e.js).
 
-Reverse proxy configured in vite.config.js routing /api/chaosguard (:3000), /api/order (:3001), /api/payment (:3002), /api/auth (:3003), and /api/inventory (:3004) directly to local Docker container ports without backend CORS changes.
+Verified step-by-step cascade failure propagation across Auth, Inventory, and Payment microservices (test_phase7_cascade.js).
 
-Cluster health polling and real-time fault detection across all 4 microservices.
+Phase 8 verification:
 
-Full chaos experiment lifecycle management:
-  - Create experiment modal with architectural sequential impact analysis.
-  - Lifecycle states: PENDING -> QUEUED -> RUNNING -> COMPLETED / FAILED.
-  - Live countdown banner with real-time progress bar and emergency stop (POST /stop) control.
-  - Experiment history table with status badges and verified safety audit (faultCleared: true).
-  - Experiment audit detail modal displaying lifecycle timings and BullMQ job metadata.
+@xyflow/react v12 integrated cleanly with dark theme CSS overrides in index.css.
 
-Interactive Order Flow Probe:
-  - Traces sequential order execution (Auth -> Inventory -> Payment).
-  - Highlights failure cascade propagation:
-    * Auth failure halts at Step 1, shielding Inventory and Payment.
-    * Inventory failure halts at Step 2, shielding Payment.
-    * Payment failure halts at Step 3 with 502 Bad Gateway.
-  - Raw JSON inspection and failure analysis.
+Production bundle verified: `npm run build` succeeds in <9s with 0 errors and 0 warnings.
 
-Real-time system event & audit console with severity filters, auto-scroll, and clipboard copy.
+All 18 unit test assertions for failure propagation logic pass (nominal, auth error/latency, inventory error/latency, payment error/latency, and live probe overrides).
 
-Verification:
-  - Zero syntax/bundling errors in Vite production build (npm run build).
-  - 100% pass on comprehensive E2E suite against live 7-container Docker cluster (test_phase7_frontend_e2e.js).
-  - Verified step-by-step cascade failure propagation across Auth, Inventory, and Payment (test_phase7_cascade.js).
+Dev server HTTP 200 verification on port 5173.
 
 Current Status
 
-Completed through Phase 7.
+Completed through Phase 8.
 
 Current next phase:
 
-Phase 8 — React Flow Topology (interactive node-based graph editor and dynamic drag-and-drop layout)
+Phase 9 — Real-Time Experiment Updates (Socket.io)
 
 Planned Roadmap
 
@@ -570,8 +624,8 @@ Phase 4  → Experiment API                     ✓
 Phase 5  → Redis + BullMQ + Worker            ✓
 Phase 6  → Auth + Inventory                   ✓
 Phase 7  → React Dashboard                    ✓
-Phase 8  → React Flow Topology                →
-Phase 9  → Socket.io Realtime
+Phase 8  → React Flow Topology                ✓
+Phase 9  → Socket.io Realtime                 →
 Phase 10 → Controlled Load Testing + Metrics
 Phase 11 → MongoDB + Experiment History
 Phase 12 → Resilience Testing + Comparison
@@ -610,8 +664,8 @@ record meaningful decisions and known issues
 
 Next Task
 
-Phase 8 — React Flow Topology (see phases.md for requirements).
+Phase 9 — Real-Time Experiment Updates (Socket.io) (see phases.md for requirements).
 
 Last Updated
 
-2026-09-29
+2026-10-04
