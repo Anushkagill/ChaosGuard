@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from './components/layout/Header';
 import Navigation from './components/layout/Navigation';
 import ActiveExperimentBanner from './components/experiments/ActiveExperimentBanner';
-import ServiceTopology from './components/topology/ServiceTopology';
+import ReactFlowTopology from './components/topology/ReactFlowTopology';
 import ServiceGrid from './components/services/ServiceGrid';
 import ServiceDetailDrawer from './components/services/ServiceDetailDrawer';
 import CreateExperimentModal from './components/experiments/CreateExperimentModal';
@@ -156,7 +156,7 @@ export default function App() {
         {currentTab === 'topology' && (
           <div className="space-y-6">
             {/* Centerpiece Topology Canvas */}
-            <ServiceTopology
+            <ReactFlowTopology
               services={services}
               activeExperiment={activeExperiment}
               probeStatus={probeStatus}
@@ -252,7 +252,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-4 mt-8 bg-slate-950/80 text-center text-xs text-slate-400 font-mono">
-        <span>ChaosGuard Resilience Platform &bull; Phase 7 Observability Dashboard &bull; 7-Container Cluster</span>
+        <span>ChaosGuard Resilience Platform &bull; Phase 8 Topology Dashboard &bull; 7-Container Cluster</span>
       </footer>
     </div>
   );
