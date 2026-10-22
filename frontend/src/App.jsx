@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/layout/Header';
 import Navigation from './components/layout/Navigation';
 import ActiveExperimentBanner from './components/experiments/ActiveExperimentBanner';
@@ -15,6 +15,7 @@ import useServices from './hooks/useServices';
 import useExperiments from './hooks/useExperiments';
 import useActiveExperiment from './hooks/useActiveExperiment';
 import useEventLogs from './hooks/useEventLogs';
+import useSSE from './hooks/useSSE';
 
 export default function App() {
   const [currentTab, setCurrentTab] = useState('topology');
@@ -23,6 +24,10 @@ export default function App() {
   const [selectedExperiment, setSelectedExperiment] = useState(null);
   const [initialTargetForModal, setInitialTargetForModal] = useState(null);
   const [probeStatus, setProbeStatus] = useState(null);
+
+  // SSE Real-Time Event Stream
+  const { subscribe, isConnected: isSSEConnected } = useSSE();
+  const processedEventsRef = useRef(new Set());
 
   // Core domain hooks
   const { logs, addLog, clearLogs } = useEventLogs();
@@ -53,20 +58,18 @@ export default function App() {
     onEvent: (level, msg) => addLog(level, msg),
   });
 
-  // Track active running experiment with countdown
+  // Track active running experiment with countdown (SSE-driven)
   const {
     activeExperiment,
     countdown,
     progress,
     stopActiveExperiment,
   } = useActiveExperiment({
-    onCompleted: (exp) => {
-      addLog('CLEANUP', `Experiment ${exp.id} completed. Safety audit confirmed faultCleared: true.`);
+    onCompleted: () => {
       refreshServices();
       fetchExperiments();
     },
-    onFailed: (exp) => {
-      addLog('ERROR', `Experiment ${exp.id} failed: ${exp.failedReason || exp.error || 'Execution error'}`);
+    onFailed: () => {
       refreshServices();
       fetchExperiments();
     },
@@ -74,8 +77,78 @@ export default function App() {
 
   // Log initial system boot
   useEffect(() => {
-    addLog('INFO', 'ChaosGuard Observability Dashboard initialized (Phase 7).');
+    addLog('INFO', 'ChaosGuard Observability Dashboard initialized (Phase 9 Real-Time SSE).');
   }, []);
+
+  // Real-Time SSE event listeners: single registration, clean unmount, and deduplication
+  useEffect(() => {
+    const handleEventOnce = (key, action) => {
+      if (processedEventsRef.current.has(key)) return;
+      processedEventsRef.current.add(key);
+      if (processedEventsRef.current.size > 200) {
+        const oldest = processedEventsRef.current.values().next().value;
+        processedEventsRef.current.delete(oldest);
+      }
+      action();
+    };
+
+    const unsubs = [
+      subscribe('experiment_queued', (data) => {
+        const key = `queued-${data.experimentId}-${data.timestamp}`;
+        handleEventOnce(key, () => {
+          addLog('QUEUED', `[SSE] Experiment ${data.experimentId} queued for ${data.target} (${data.fault})`);
+          fetchExperiments();
+        });
+      }),
+
+      subscribe('experiment_started', (data) => {
+        const key = `started-${data.experimentId}-${data.timestamp}`;
+        handleEventOnce(key, () => {
+          addLog('ACTIVE', `[SSE] Experiment ${data.experimentId} started — worker executing on ${data.target}`);
+          refreshServices();
+          fetchExperiments();
+        });
+      }),
+
+      subscribe('fault_injected', (data) => {
+        const key = `fault_injected-${data.experimentId}-${data.timestamp}`;
+        handleEventOnce(key, () => {
+          addLog('ACTIVE', `[SSE] Fault ${data.fault} activated on ${data.target}`);
+          refreshServices();
+        });
+      }),
+
+      subscribe('fault_cleared', (data) => {
+        const key = `fault_cleared-${data.experimentId}-${data.timestamp}`;
+        handleEventOnce(key, () => {
+          addLog('CLEANUP', `[SSE] Fault cleared from ${data.target}`);
+          refreshServices();
+        });
+      }),
+
+      subscribe('experiment_completed', (data) => {
+        const key = `completed-${data.experimentId}-${data.timestamp}`;
+        handleEventOnce(key, () => {
+          addLog('CLEANUP', `[SSE] Experiment ${data.experimentId} completed (faultCleared: ${data.faultCleared})`);
+          refreshServices();
+          fetchExperiments();
+        });
+      }),
+
+      subscribe('experiment_failed', (data) => {
+        const key = `failed-${data.experimentId}-${data.timestamp}`;
+        handleEventOnce(key, () => {
+          addLog('ERROR', `[SSE] Experiment ${data.experimentId} failed: ${data.error}`);
+          refreshServices();
+          fetchExperiments();
+        });
+      }),
+    ];
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+    };
+  }, [subscribe, addLog, refreshServices, fetchExperiments]);
 
   // Handlers
   const handleOpenCreateModal = (targetServiceId = null) => {
@@ -89,7 +162,6 @@ export default function App() {
 
     if (payload.startImmediately) {
       await startExperiment(newExp.id);
-      addLog('QUEUED', `Experiment ${newExp.id} sent to BullMQ queue.`);
     }
 
     refreshServices();
@@ -98,7 +170,6 @@ export default function App() {
 
   const handleStartExperiment = async (id) => {
     await startExperiment(id);
-    addLog('QUEUED', `Experiment ${id} submitted to BullMQ worker queue.`);
     refreshServices();
     fetchExperiments();
   };
@@ -252,7 +323,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-4 mt-8 bg-slate-950/80 text-center text-xs text-slate-400 font-mono">
-        <span>ChaosGuard Resilience Platform &bull; Phase 8 Topology Dashboard &bull; 7-Container Cluster</span>
+        <span>ChaosGuard Resilience Platform &bull; Phase 9 Real-Time SSE Updates &bull; 7-Container Cluster</span>
       </footer>
     </div>
   );
