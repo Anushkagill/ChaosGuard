@@ -33,6 +33,7 @@ export async function createExperiment(payload) {
   const fault = payload.fault || payload.faultType;
   const parameters = payload.parameters || payload.faultConfig || {};
   const duration = Number(payload.duration) || 10;
+  const loadConfig = payload.loadConfig || null;
 
   const res = await request('/api/chaosguard/experiments', {
     method: 'POST',
@@ -41,6 +42,7 @@ export async function createExperiment(payload) {
       fault,
       parameters,
       duration,
+      ...(loadConfig ? { loadConfig } : {}),
     },
   });
   return normalizeExperiment(res.data);
