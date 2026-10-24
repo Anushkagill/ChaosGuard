@@ -68,6 +68,21 @@ export function ActiveExperimentBanner({
               <Badge variant={isQueued ? 'neutral' : 'running'} size="sm">
                 {activeExperiment.status}
               </Badge>
+              {activeExperiment.loadPhase && (
+                <Badge
+                  variant={
+                    activeExperiment.loadPhase === 'chaos'
+                      ? 'failed'
+                      : activeExperiment.loadPhase === 'recovery'
+                      ? 'nominal'
+                      : 'running'
+                  }
+                  size="sm"
+                  className="font-mono uppercase tracking-wider animate-pulse"
+                >
+                  Load Phase: {activeExperiment.loadPhase}
+                </Badge>
+              )}
               <span className="text-xs text-slate-300 font-mono">
                 Target: <strong className="text-white">{target}</strong>
               </span>
