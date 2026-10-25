@@ -4,6 +4,7 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { formatTimestamp, formatDuration, getStatusBadgeVariant } from '../../utils/formatters';
 import { ShieldCheck, AlertCircle, Clock, Zap, Server, CheckCircle2, Square } from 'lucide-react';
+import MetricsPanel from './MetricsPanel';
 
 export default function ExperimentDetailModal({
   experiment,
@@ -29,6 +30,7 @@ export default function ExperimentDetailModal({
     failedReason,
     progress,
     safetyAudit,
+    metrics,
   } = experiment;
 
   const isCleared = safetyAudit?.faultCleared ?? progress?.faultCleared ?? (status === 'COMPLETED');
@@ -39,7 +41,7 @@ export default function ExperimentDetailModal({
       isOpen={isOpen}
       onClose={onClose}
       title={`Experiment Audit: ${id}`}
-      maxWidth="max-w-2xl"
+      maxWidth={metrics ? 'max-w-4xl' : 'max-w-2xl'}
     >
       <div className="space-y-6">
         {/* Top summary row */}
@@ -152,6 +154,9 @@ export default function ExperimentDetailModal({
             <p className="opacity-90">{failedReason || error}</p>
           </div>
         )}
+
+        {/* Phase 10: Quantitative Multi-Phase Metrics */}
+        {metrics && <MetricsPanel metrics={metrics} />}
 
         {/* Modal Actions */}
         <div className="flex items-center justify-between pt-3 border-t border-slate-800">
