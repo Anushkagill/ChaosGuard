@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { TARGET_SERVICES, FAULT_TYPES, FAULT_IMPACTS } from '../../utils/constants';
-import { Zap, Clock, ShieldAlert, AlertTriangle, Play, Check } from 'lucide-react';
+import { Zap, Clock, ShieldAlert, AlertTriangle, Play, Check, BarChart3 } from 'lucide-react';
 
 export default function CreateExperimentModal({
   isOpen = false,
@@ -15,6 +15,10 @@ export default function CreateExperimentModal({
   const [durationSec, setDurationSec] = useState(10);
   const [latencyMs, setLatencyMs] = useState(3000);
   const [startImmediately, setStartImmediately] = useState(true);
+  const [enableLoadTesting, setEnableLoadTesting] = useState(false);
+  const [loadConnections, setLoadConnections] = useState(10);
+  const [baselineDuration, setBaselineDuration] = useState(10);
+  const [recoveryDuration, setRecoveryDuration] = useState(10);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
 
@@ -43,6 +47,15 @@ export default function CreateExperimentModal({
           ? { statusCode: 500, message: 'ChaosGuard simulated failure' }
           : {},
       startImmediately,
+      ...(enableLoadTesting
+        ? {
+            loadConfig: {
+              connections: Number(loadConnections),
+              baselineDuration: Number(baselineDuration),
+              recoveryDuration: Number(recoveryDuration),
+            },
+          }
+        : {}),
     };
 
     try {
@@ -170,6 +183,76 @@ export default function CreateExperimentModal({
             <span>10s (Standard)</span>
             <span>60s (Extended)</span>
           </div>
+        </div>
+
+        {/* Phase 10: Controlled Load Testing & Metrics Toggle */}
+        <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 space-y-3">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={enableLoadTesting}
+              onChange={(e) => setEnableLoadTesting(e.target.checked)}
+              className="w-4 h-4 rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-slate-900 cursor-pointer"
+            />
+            <div className="flex items-center gap-1.5">
+              <BarChart3 className="w-4 h-4 text-indigo-400" />
+              <span className="text-xs font-bold text-slate-200">
+                Enable Controlled Load Testing &amp; Metrics
+              </span>
+            </div>
+          </label>
+
+          {enableLoadTesting && (
+            <div className="pt-2.5 border-t border-slate-800/80 space-y-3 font-mono text-xs">
+              <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
+                Generates controlled traffic against <code className="text-blue-300">order-service:3001</code> across Baseline, Chaos, and Recovery phases to measure quantitative throughput, latency percentiles (p50/p95/p99), and error rates.
+              </p>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 mb-1">
+                    Connections (1-50)
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={loadConnections}
+                    onChange={(e) => setLoadConnections(Math.min(50, Math.max(1, Number(e.target.value))))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-100 text-xs focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 mb-1">
+                    Baseline (2-60s)
+                  </label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="60"
+                    value={baselineDuration}
+                    onChange={(e) => setBaselineDuration(Math.min(60, Math.max(2, Number(e.target.value))))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-100 text-xs focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase text-slate-400 mb-1">
+                    Recovery (2-60s)
+                  </label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="60"
+                    value={recoveryDuration}
+                    onChange={(e) => setRecoveryDuration(Math.min(60, Math.max(2, Number(e.target.value))))}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-slate-100 text-xs focus:border-indigo-500 focus:outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Architectural Impact Notice */}
