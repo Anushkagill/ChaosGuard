@@ -149,6 +149,45 @@ export function useActiveExperiment(experimentsOrOptions = {}, maybeOnFinished, 
       }
     });
 
+    const unsubLoadBaseline = subscribe('load_baseline_started', (data) => {
+      lastSseUpdateRef.current = Date.now();
+      setActiveExp((prev) => {
+        if (prev?.id === data.experimentId) {
+          return { ...prev, loadPhase: 'baseline' };
+        }
+        return prev;
+      });
+      if (onLog) {
+        onLog('ACTIVE', `Experiment ${data.experimentId} — Baseline load phase started (nominal telemetry)`);
+      }
+    });
+
+    const unsubLoadChaos = subscribe('load_chaos_started', (data) => {
+      lastSseUpdateRef.current = Date.now();
+      setActiveExp((prev) => {
+        if (prev?.id === data.experimentId) {
+          return { ...prev, loadPhase: 'chaos' };
+        }
+        return prev;
+      });
+      if (onLog) {
+        onLog('ACTIVE', `Experiment ${data.experimentId} — Chaos load phase started (cascade failure impact)`);
+      }
+    });
+
+    const unsubLoadRecovery = subscribe('load_recovery_started', (data) => {
+      lastSseUpdateRef.current = Date.now();
+      setActiveExp((prev) => {
+        if (prev?.id === data.experimentId) {
+          return { ...prev, loadPhase: 'recovery' };
+        }
+        return prev;
+      });
+      if (onLog) {
+        onLog('ACTIVE', `Experiment ${data.experimentId} — Recovery load phase started (nominal recovery bounds)`);
+      }
+    });
+
     const unsubCompleted = subscribe('experiment_completed', (data) => {
       lastSseUpdateRef.current = Date.now();
       const updated = {
@@ -157,6 +196,8 @@ export function useActiveExperiment(experimentsOrOptions = {}, maybeOnFinished, 
         target: data.target,
         status: 'COMPLETED',
         faultCleared: data.faultCleared,
+        metrics: data.metrics || null,
+        loadPhase: null,
         completedAt: data.completedAt || data.timestamp,
       };
       setActiveExp(updated);
@@ -179,6 +220,7 @@ export function useActiveExperiment(experimentsOrOptions = {}, maybeOnFinished, 
         status: 'FAILED',
         error: data.error,
         faultCleared: data.faultCleared,
+        loadPhase: null,
         completedAt: data.completedAt || data.timestamp,
       };
       setActiveExp(updated);
@@ -202,6 +244,9 @@ export function useActiveExperiment(experimentsOrOptions = {}, maybeOnFinished, 
       unsubStarted();
       unsubFaultInjected();
       unsubFaultCleared();
+      unsubLoadBaseline();
+      unsubLoadChaos();
+      unsubLoadRecovery();
       unsubCompleted();
       unsubFailed();
       unsubReconnect();
