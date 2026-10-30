@@ -16,9 +16,9 @@ const { ApiError } = require('../utils/ApiError');
 
 // POST /experiments
 async function createExperiment(req, res) {
-  const { target, fault, parameters, duration } = req.body;
+  const { target, fault, parameters, duration, loadConfig } = req.body;
 
-  const result = experimentService.create({ target, fault, parameters, duration });
+  const result = experimentService.create({ target, fault, parameters, duration, loadConfig });
 
   if (!result.success) {
     throw new ApiError(400, 'Invalid experiment', result.errors);
