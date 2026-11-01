@@ -40,7 +40,7 @@ function generateId() {
   return `exp_${String(counter).padStart(3, '0')}`;
 }
 
-function createExperiment({ target, fault, parameters, duration }) {
+function createExperiment({ target, fault, parameters, duration, loadConfig }) {
   const id = generateId();
   const experiment = {
     id,
@@ -52,6 +52,8 @@ function createExperiment({ target, fault, parameters, duration }) {
     error: null,
     jobId: null,          // Phase 5: BullMQ job ID, set when experiment is queued.
     faultCleared: null,   // Phase 5: tracks whether fault was actually cleared.
+    loadConfig: loadConfig || null, // Phase 10: optional controlled load testing configuration
+    metrics: null,        // Phase 10: collected Baseline -> Chaos -> Recovery metrics
     createdAt: new Date().toISOString(),
     queuedAt: null,       // Phase 5: timestamp when job was added to BullMQ.
     startedAt: null,
@@ -76,6 +78,17 @@ function updateExperiment(id, updates) {
   return experiment;
 }
 
+function getExperimentByJobId(jobId) {
+  if (!jobId) return null;
+  const targetId = String(jobId);
+  for (const experiment of experiments.values()) {
+    if (experiment.jobId && String(experiment.jobId) === targetId) {
+      return experiment;
+    }
+  }
+  return null;
+}
+
 module.exports = {
   SUPPORTED_TARGETS,
   SUPPORTED_FAULTS,
@@ -84,4 +97,5 @@ module.exports = {
   getExperiment,
   getAllExperiments,
   updateExperiment,
+  getExperimentByJobId,
 };
