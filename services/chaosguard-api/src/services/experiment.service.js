@@ -30,10 +30,45 @@ const {
 } = require('../models/experiment.model');
 const targetService = require('./target.service');
 const experimentQueue = require('../queues/experiment.queue');
+const { broadcast } = require('../routes/sse.routes');
 
-// ---- Validation ----
+function validateLoadConfig(loadConfig) {
+  if (!loadConfig) return [];
+  const errors = [];
 
-function validateExperimentInput({ target, fault, parameters, duration }) {
+  if (typeof loadConfig !== 'object' || Array.isArray(loadConfig)) {
+    return ['loadConfig must be an object'];
+  }
+
+  const { connections, baselineDuration, recoveryDuration } = loadConfig;
+
+  if (connections !== undefined) {
+    if (!Number.isInteger(connections) || connections < 1 || connections > 50) {
+      errors.push('loadConfig.connections must be an integer between 1 and 50');
+    }
+  }
+
+  if (baselineDuration !== undefined) {
+    if (typeof baselineDuration !== 'number' || baselineDuration < 2 || baselineDuration > 60) {
+      errors.push('loadConfig.baselineDuration must be a number between 2 and 60 seconds');
+    }
+  }
+
+  if (recoveryDuration !== undefined) {
+    if (typeof recoveryDuration !== 'number' || recoveryDuration < 2 || recoveryDuration > 60) {
+      errors.push('loadConfig.recoveryDuration must be a number between 2 and 60 seconds');
+    }
+  }
+
+  // Reject any unauthorized URL overrides
+  if (loadConfig.url || loadConfig.targetUrl || loadConfig.destination) {
+    errors.push('loadConfig does not allow destination overrides; load is strictly internal');
+  }
+
+  return errors;
+}
+
+function validateExperimentInput({ target, fault, parameters, duration, loadConfig }) {
   const errors = [];
 
   if (!target) {
@@ -59,6 +94,10 @@ function validateExperimentInput({ target, fault, parameters, duration }) {
     if (!latencyMs || typeof latencyMs !== 'number' || latencyMs <= 0) {
       errors.push('latency fault requires parameters.latencyMs (positive number)');
     }
+  }
+
+  if (loadConfig) {
+    errors.push(...validateLoadConfig(loadConfig));
   }
 
   return errors;
@@ -113,13 +152,30 @@ async function start(id) {
       fault: experiment.fault,
       parameters: experiment.parameters,
       duration: experiment.duration,
+      loadConfig: experiment.loadConfig,
     });
 
     // Store the BullMQ job ID so we can look it up later during status sync.
     updateExperiment(id, { jobId: job.id });
 
     console.log(`[EXPERIMENT] ${id} queued — BullMQ job ${job.id}`);
-    return { success: true, experiment: getExperiment(id) };
+
+    // Emit experiment_queued only after the job has been successfully enqueued
+    const queuedExperiment = getExperiment(id);
+    broadcast('experiment_queued', {
+      experimentId: id,
+      target: queuedExperiment.target,
+      fault: queuedExperiment.fault,
+      parameters: queuedExperiment.parameters,
+      duration: queuedExperiment.duration,
+      loadConfig: queuedExperiment.loadConfig,
+      status: 'QUEUED',
+      jobId: String(job.id),
+      queuedAt: queuedExperiment.queuedAt,
+      timestamp: new Date().toISOString(),
+    });
+
+    return { success: true, experiment: queuedExperiment };
   } catch (err) {
     // Failed to enqueue — roll back to PENDING so the experiment can be retried.
     console.error(`[EXPERIMENT] ${id} failed to enqueue: ${err.message}`);
@@ -253,6 +309,7 @@ async function syncStatusFromQueue(experiment) {
       startedAt: result?.startedAt || experiment.startedAt,
       completedAt: result?.completedAt || new Date().toISOString(),
       faultCleared: result?.faultCleared ?? null,
+      metrics: result?.metrics || null,
     });
   } else if (state === 'failed' && experiment.status !== 'FAILED') {
     // For failed jobs, faultCleared is stored in job.progress (not returnvalue)
