@@ -2,7 +2,7 @@ ChaosGuard — Memory
 
 Current Phase
 
-Phase 8 — React Flow Topology (implemented and verified)
+Phase 10 — Controlled Load Testing and Metrics (implemented and verified)
 
 Completed Work
 
@@ -605,13 +605,71 @@ All 18 unit test assertions for failure propagation logic pass (nominal, auth er
 
 Dev server HTTP 200 verification on port 5173.
 
+Phase 9 verification:
+
+Real-time experiment updates implemented via Server-Sent Events (SSE) instead of Socket.io for unidirectional efficiency and zero additional dependencies.
+
+SSE endpoint `GET /experiments/stream` in `chaosguard-api` with safe client cleanup on disconnect, per-connection heartbeat interval (15s), and write error resilience.
+
+BullMQ `QueueEvents` -> SSE bridge (`experiment.bridge.js`) mapping `jobId` to `experimentId` with dual push + authoritative pull synchronization.
+
+Frontend `useSSE` hook provides a singleton `EventSource` connection with `addEventListener` for named events, clean unmounts, and reconnect detection.
+
+Frontend `useActiveExperiment` completely replaces the 1s network polling loop with SSE push events and local countdown calculation, with timestamp-based snapshot reconciliation to avoid stale fetch overwrites.
+
+Production bundle verified with `npm run build` exiting 0 in 18s. Node syntax checks pass across all backend files.
+
+Phase 10 — Controlled Load Testing and Metrics
+
+Programmatic load testing via embedded `autocannon` (v7) in `experiment-worker`:
+- Programmatic, pure-JS load generator embedded inside worker process (`runLoadPhase`).
+- Restricts load generation strictly to internal Docker `ORDER_SERVICE_URL` (`POST /orders`).
+- Uses exact Order Service validation schema (`{ item: 'chaos-load-probe', amount: 100, quantity: 1, token: 'simulated-guest-token' }`) ensuring 100% of baseline and recovery probe requests authenticate and traverse all three boundaries (Auth -> Inventory -> Payment).
+
+Three-Phase Execution Model:
+- Baseline Phase: Measures nominal throughput, error rate, and tail latency prior to fault activation.
+- Chaos Phase: Activates fault on target, executes load during fault window to measure failure cascade impact.
+- Recovery Phase: Clears fault on target, executes load to measure whether nominal bounds are restored within the observation window.
+
+Guaranteed Fault Cleanup & Safety:
+- Nested `try / finally` blocks guarantee fault clearance on all exit paths (load errors, timeouts, exceptions).
+- `faultCleared` tracked explicitly and updated only upon verified removal from target.
+- Documented limitation: OS-level hard worker crashes (SIGKILL) require manual target inspection via `GET /internal/faults`.
+
+Metrics & Comparison Model:
+- `MetricsSnapshot`: Captures total requests, 2xx successes, non-2xx failures, timeouts, throughput RPS, min/max/avg, and p50/p95/p99 tail latencies. Missing or zero values safely represented as null (never fake zeros).
+- `ComparisonSummary`: Reports measured quantitative deltas (p95 delta ms, error rate delta %, throughput delta) separately from qualitative assessments.
+- Explicit recovery rules: Evaluates error rate recovery, latency recovery, and composite status (`FULLY_RECOVERED`, `ERROR_RATE_ONLY`, `DEGRADED`).
+- Replaced fake "recoveryTime" with truthful `recoveryWindowSec` (the observation duration).
+
+Real-Time Progress & UI:
+- BullMQ `QueueEvents` -> SSE bridge emits `load_baseline_started`, `load_chaos_started`, `load_recovery_started`.
+- Authoritative metrics synchronization: `queueEvents.on('completed')` copies `metrics` into in-memory model and broadcasts via SSE payload.
+- `useActiveExperiment` hook tracks live load phase and cleanly resets on completion/failure.
+- `ActiveExperimentBanner` displays animated load phase badge during running load experiments.
+- `CreateExperimentModal` features toggle for optional load testing with bounded inputs (1-50 connections, 2-60s durations).
+- `MetricsPanel` renders telemetry table with explicit units (`ms`, `req/s`, `%`, `s`, `count`) and comparison impact cards inside `ExperimentDetailModal`.
+- Full backward compatibility: Legacy experiments without `loadConfig` execute Phase 5/9 flow with `metrics: null`.
+
+Phase 10 Verification:
+- Unit test suite (`test_phase10_units.js`) passed all normalization, zero-handling, timeout categorization, and recovery calculation assertions.
+- Vite production build (`npm run build`) passed with 0 errors in 53s.
+- Live 7-stage E2E verification suite (`test_phase10_e2e.js`) passed 100% across all 7 containers:
+  * Microservice health checks (API :3000, Order :3001, Payment :3002, Auth :3003, Inventory :3004).
+  * Baseline order flow schema validation.
+  * Backend input validation & security bounding (rejected invalid loadConfig with 400).
+  * Legacy experiment backward compatibility (completed, faultCleared: true, metrics: null).
+  * Phase 10 Latency experiment on Payment Service: Baseline p95 125ms -> Chaos p95 2096ms (+1971ms delta) -> Recovery p95 99ms, FULLY_RECOVERED.
+  * Phase 10 Error cascade experiment on Auth Service: Baseline error rate 0% -> Chaos error rate 100% -> Recovery error rate 0%, FULLY_RECOVERED.
+  * Runtime safety verification: Confirmed activeFault = null across all targets.
+
 Current Status
 
-Completed through Phase 8.
+Completed through Phase 10.
 
 Current next phase:
 
-Phase 9 — Real-Time Experiment Updates (Socket.io)
+Phase 11 — MongoDB Persistence and Experiment History
 
 Planned Roadmap
 
@@ -625,9 +683,9 @@ Phase 5  → Redis + BullMQ + Worker            ✓
 Phase 6  → Auth + Inventory                   ✓
 Phase 7  → React Dashboard                    ✓
 Phase 8  → React Flow Topology                ✓
-Phase 9  → Socket.io Realtime                 →
-Phase 10 → Controlled Load Testing + Metrics
-Phase 11 → MongoDB + Experiment History
+Phase 9  → Real-Time Updates (SSE)            ✓
+Phase 10 → Controlled Load Testing + Metrics  ✓
+Phase 11 → MongoDB + Experiment History       →
 Phase 12 → Resilience Testing + Comparison
 Phase 13 → Safety / Reliability / Testing / Deployment / Polish
 Optional → AI-Assisted Analysis
@@ -664,8 +722,8 @@ record meaningful decisions and known issues
 
 Next Task
 
-Phase 9 — Real-Time Experiment Updates (Socket.io) (see phases.md for requirements).
+Phase 11 — MongoDB Persistence and Experiment History (see phases.md for requirements).
 
 Last Updated
 
-2026-10-04
+2026-10-23
