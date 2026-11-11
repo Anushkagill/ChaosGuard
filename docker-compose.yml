@@ -29,11 +29,13 @@ services:
     build: ./services/experiment-worker
     environment:
       - REDIS_URL=redis://redis:6379
+      - ORDER_SERVICE_URL=http://order-service:3001
       - PAYMENT_SERVICE_URL=http://payment-service:3002
       - AUTH_SERVICE_URL=http://auth-service:3003
       - INVENTORY_SERVICE_URL=http://inventory-service:3004
     depends_on:
       - redis
+      - order-service
       - payment-service
       - auth-service
       - inventory-service
