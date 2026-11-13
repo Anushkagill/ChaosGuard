@@ -30,7 +30,7 @@ Run Again
    ↓
 Compare Results
 
-The project should prioritize depth of understanding, repeatable experiments, measurable results, and architectural coherence over the number of technologies used.
+The project should prioritize depth of understanding, repeatable experiments, measu0rable results, and architectural coherence over the number of technologies used.
 
 Phase 0 — Project Foundation
 
@@ -815,41 +815,37 @@ Allow the dashboard to update while experiments are running.
 
 Technology
 
-Socket.io
+Server-Sent Events (SSE) via native EventSource and Express stream endpoint.
 
 Event Examples
 
 experiment_queued
 experiment_started
 fault_injected
-service_degraded
-service_failed
-dependency_affected
-fault_removed
-service_recovered
+fault_cleared
 experiment_completed
 experiment_failed
 
 Architecture
 
-Experiment Worker
+Experiment Worker (BullMQ)
        |
-       v
-ChaosGuard Backend
+       v (Redis QueueEvents)
+ChaosGuard Backend (Bridge & Express SSE Stream)
        |
-       | Socket.io
+       | Server-Sent Events (/experiments/stream)
        v
-React Dashboard
+React Dashboard (useSSE & EventSource)
 
 Acceptance Criteria
 
-The dashboard receives live experiment state changes.
+The dashboard receives live experiment state changes via SSE.
 
-The topology can react to experiment events.
+The topology and active experiment banner react immediately to experiment events without polling.
 
 Users do not need to repeatedly refresh the page to see experiment progress.
 
-Events represent actual experiment state changes.
+Events represent actual experiment state changes (fault activation and clearance).
 
 Phase 10 — Controlled Load Testing and Metrics
 
