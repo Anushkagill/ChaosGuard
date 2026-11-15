@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "axios": "^1.7.2",
+    "autocannon": "^7.15.0",
     "bullmq": "^5.56.0",
     "ioredis": "^5.4.2"
   }
